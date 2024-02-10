@@ -45,5 +45,5 @@ If you appreciate my work and find value in my open-source projects, I welcome y
 
 By supporting me, you not only enable me to sustain this journey but also empower me to dedicate additional time to help you resolve environment-specific issues for the projects I've authored.
 
-![Sponsor](https://img.shields.io/badge/Sponsor-8a2be2?style=for-the-badge&logo=github&logoColor=%23ffffff&color=%23181717)
-![Donate](https://img.shields.io/badge/Donate-8a2be2?style=for-the-badge&logo=paypal&logoColor=%23ffffff&color=%23003087)
+[![Sponsor](https://img.shields.io/badge/Sponsor-8a2be2?style=for-the-badge&logo=github&logoColor=%23ffffff&color=%23181717)](https://github.com/sponsors/mrjackyliang)
+[![Donate](https://img.shields.io/badge/Donate-8a2be2?style=for-the-badge&logo=paypal&logoColor=%23ffffff&color=%23003087)](https://liang.nyc/paypal)
