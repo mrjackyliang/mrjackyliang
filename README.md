@@ -20,7 +20,7 @@ If you would like to learn more about me, read my [biography](https://www.mrjack
 ## My Tools of the Trade 🛠️
 [![WebStorm](https://img.shields.io/badge/WebStorm-8a2be2?style=for-the-badge&logo=webstorm&logoColor=%23ffffff&color=%23087cfa)](https://www.jetbrains.com/webstorm/)
 [![PhpStorm](https://img.shields.io/badge/PhpStorm-8a2be2?style=for-the-badge&logo=phpstorm&logoColor=%23ffffff&color=%236b57ff)](https://www.jetbrains.com/phpstorm/)
-[![IntelliJ IDEA](https://img.shields.io/badge/IDEA-8a2be2?style=for-the-badge&logo=intellijidea&logoColor=%23ffffff&color=%23fe325d)](https://www.jetbrains.com/idea/)
+[![IntelliJ IDEA](https://img.shields.io/badge/IntelliJ%20IDEA-8a2be2?style=for-the-badge&logo=intellijidea&logoColor=%23ffffff&color=%23fe325d)](https://www.jetbrains.com/idea/)
 [![CLion](https://img.shields.io/badge/CLion-8a2be2?style=for-the-badge&logo=clion&logoColor=%23ffffff&color=%2323d88f)](https://www.jetbrains.com/clion/)
 [![PyCharm](https://img.shields.io/badge/PyCharm-8a2be2?style=for-the-badge&logo=pycharm&logoColor=%23ffffff&color=%2328b8a0)](https://www.jetbrains.com/pycharm/)
 [![Xcode](https://img.shields.io/badge/Xcode-8a2be2?style=for-the-badge&logo=xcode&logoColor=%23ffffff&color=%23147efb)](https://developer.apple.com/xcode/)
