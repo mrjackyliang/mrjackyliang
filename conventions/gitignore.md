@@ -1,3 +1,13 @@
+gitignore
+==========
+
+[Back to Conventions](https://github.com/mrjackyliang/mrjackyliang/tree/main/conventions)
+
+1. Each repository is required to include a `.gitignore` file at the project's root directory.
+2. All `.gitignore` files managed by a single organization should maintain uniformity across all projects (except for the __Project Excludes__ section since unfortunately, every project may have their own files to ignore) to streamline maintenance efforts.
+
+### Starter File I Use for All Projects ⬇️
+```gitignore
 ###############
 #### macOS ####
 ###############
@@ -75,3 +85,7 @@ package-lock.json
 ##########################
 #### Project Excludes ####
 ##########################
+
+```
+
+[Back to Conventions](https://github.com/mrjackyliang/mrjackyliang/tree/main/conventions)
