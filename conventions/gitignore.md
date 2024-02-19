@@ -71,11 +71,26 @@ package-lock.json
 #################
 .next/
 
+#####################
+#### AWS Amplify ####
+#####################
+amplify/.config/local-*
+amplify/backend/.temp
+amplify/backend/amplify-meta.json
+amplify/\#current-cloud-backend
+amplify/hooks/*.sample
+amplify/logs
+amplify/mock-api-resources
+amplify/mock-data
+src/amplifyconfiguration.json
+src/aws-exports.js
+
 ##################
 #### Firebase ####
 ##################
-**/.firebase
-**/.firebaserc
+.firebase
+.firebaserc
+firebase-debug.log
 
 ###################
 #### JetBrains ####
@@ -85,7 +100,6 @@ package-lock.json
 ##########################
 #### Project Excludes ####
 ##########################
-
 ```
 
 [Back to Conventions](https://github.com/mrjackyliang/mrjackyliang/tree/main/conventions)

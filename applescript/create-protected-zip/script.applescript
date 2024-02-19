@@ -56,7 +56,5 @@ on joinListWithQuotes(theList, delimiter)
 		end if
 	end repeat
 	
-	display dialog theResult
-	
 	return theResult
 end joinListWithQuotes
