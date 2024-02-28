@@ -49,6 +49,7 @@ If you would like to learn more about me, read my [biography](https://www.mrjack
 |-----------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [AppleScript](https://github.com/mrjackyliang/mrjackyliang/tree/main/applescript) | My personal stash of AppleScript goodies. From quick commands to workflow streamlining to handy scripts that just make life easier.                                       |
 | [Conventions](https://github.com/mrjackyliang/mrjackyliang/tree/main/conventions) | Dive into the inner workings of my coding philosophy. It's not just about the code; it's about the why behind it all. Explore the dos, don'ts, and everything in between. |
+| [Games](https://github.com/mrjackyliang/mrjackyliang/tree/main/games)             | Discover a treasure of games that I've written for fun and through school assignments. I'm not much of a gamer, but here it is!                                           |
 | [Snippets](https://github.com/mrjackyliang/mrjackyliang/tree/main/snippets)       | A collection of little code pieces I've crafted over time. Whether it's solving a tricky problem or just experimenting with new ideas, you'll find them all here.         |
 
 ## Support My Work 🎗️
