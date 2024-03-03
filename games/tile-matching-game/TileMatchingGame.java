@@ -282,7 +282,7 @@ public class TileMatchingGame {
         if (horizontal) {
             while (
                     column < tileGrid[0].length
-                            && tileGrid[row][column] == targetCharacter // Makes sure the character matches what we're looking for (targetChar).
+                    && tileGrid[row][column] == targetCharacter // Makes sure the character matches what we're looking for (targetChar).
             ) {
                 count += 1;
                 column += 1; // Traverse until the end of the column.
@@ -293,7 +293,7 @@ public class TileMatchingGame {
         if (!horizontal) {
             while (
                     row < tileGrid.length
-                            && tileGrid[row][column] == targetCharacter // Makes sure the character matches what we're looking for (targetChar).
+                    && tileGrid[row][column] == targetCharacter // Makes sure the character matches what we're looking for (targetChar).
             ) {
                 count += 1;
                 row += 1; // Traverse until the end of the row.
