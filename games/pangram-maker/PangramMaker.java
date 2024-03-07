@@ -174,8 +174,8 @@ public class PangramMaker {
         // Sort the pairs in descending order based on the "unusedDistinctLetters".
         pairs.sort(Comparator.comparingInt(SuggestionPair::unusedDistinctLetters).reversed());
 
-        // Truncate the pairs to up to 5 words only.
-        if (pairs.size() >= 5) {
+        // Truncate the pairs if the size is greater than 5.
+        if (pairs.size() > 5) {
             pairs = new ArrayList<>(pairs.subList(0, 5));
         } else {
             int amountOfWordsToFill = 5 - pairs.size();
