@@ -38,6 +38,8 @@ public class PangramMaker {
                 // The included file doesn't seem to have such issues, but good to have.
                 if (word.matches("^[A-Z]+$")) {
                     words.add(word);
+                } else {
+                    System.out.println(colorText("93", "WARNING") + ": The \"" + word + "\" word is not all capital letters. Skipping ...");
                 }
             }
 
@@ -118,7 +120,7 @@ public class PangramMaker {
      */
     private static boolean isAllAlphabetLettersUsed(boolean[] lettersUsed) {
         for (boolean letterUsed : lettersUsed) {
-            // Reminder that this is a "boolean[]". If letter is used, the value should be "true".
+            // If a letter is used, the value corresponding to that index should be "true".
             if (!letterUsed) {
                 return false;
             }
@@ -139,7 +141,8 @@ public class PangramMaker {
 
         for (int i = 0; i < word.length(); i += 1) {
             /*
-             Reminder: i == (int) ('A' + i - 65).
+             REMINDER
+             i == (int) ('A' + i - 65).
 
              The 'A' character is now index 0, not 65 (like the ASCII table index).
              The 'Z' character is now index 25, not 90 (like the ASCII table index).
@@ -148,7 +151,7 @@ public class PangramMaker {
 
             // Check if the letter is not used.
             if (!alphabetLettersUsed[characterIndex]) {
-                // This will ignore any duplicate characters.
+                // Adding to a set. This will ignore any duplicate characters.
                 uniqueCharacters.add(word.charAt(i));
             }
         }
@@ -178,7 +181,7 @@ public class PangramMaker {
         if (pairs.size() > 5) {
             pairs = new ArrayList<>(pairs.subList(0, 5));
         } else {
-            int amountOfWordsToFill = 5 - pairs.size();
+            int amountOfWordsToFill = 5 - pairs.size(); // If size is 5, the for loop won't run.
 
             // Find a random word to fill the "pairs.size()" to 5.
             for (int i = 0; i < amountOfWordsToFill; i += 1) {
