@@ -1,6 +1,9 @@
 import java.util.Random;
 import java.util.Scanner;
 
+/**
+ * Tile matching game.
+ */
 public class TileMatchingGame {
     /**
      * Main.
