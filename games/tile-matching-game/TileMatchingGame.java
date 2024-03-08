@@ -321,7 +321,6 @@ public class TileMatchingGame {
         System.out.println();
 
         // Now loop through the tile grid, and make it look amazing.
-        // noinspection ForLoopReplaceableByForEach
         for (int row = 0; row < tileGrid.length; row += 1) {
             for (int column = 0; column <= tileGrid[row].length; column += 1) {
                 if (column == tileGrid[row].length) { // Prevents "ArrayIndexOutOfBoundsException" error.

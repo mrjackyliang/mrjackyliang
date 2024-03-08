@@ -70,7 +70,7 @@ public class PangramMaker {
      * @return String
      */
     private static String makePangram(ArrayList<String> words) {
-        boolean[] alphabetLettersUsed = new boolean[26]; // Initializes with no alphabet letters used.
+        boolean[] alphabetLettersUsed = new boolean[26]; // Initializes with no alphabet letters used (all "false" values).
         Scanner scanner = new Scanner(System.in);
         StringBuilder pangram = new StringBuilder();
 
@@ -96,9 +96,17 @@ public class PangramMaker {
                 continue;
             }
 
-            // Loop through the "alphabetLettersUsed" for checking against the input string.
+            // Track which letters have already been used.
             for (int i = 0; i < alphabetLettersUsed.length; i += 1) {
-                // Check if the alphabet letter is not used and if the input contains the alphabet letter.
+                /*
+                 * Checks if the "input" has used a capital letter not used before. If it
+                 * has never been used before, set that value to "true" so we now know this capital
+                 * letter has been used.
+                 *
+                 * If the capital letter is already used, the if statement will
+                 * short-circuit. In theory, we already know it is used, so why should
+                 * we check it again? Save ourselves from unneeded operations.
+                 */
                 if (!alphabetLettersUsed[i] && input.contains(String.valueOf((char) ('A' + i)))) {
                     alphabetLettersUsed[i] = true;
                 }
@@ -142,13 +150,13 @@ public class PangramMaker {
         Set<Character> uniqueLetters = new HashSet<>();
 
         for (int i = 0; i < word.length(); i += 1) {
-        /*
-         REMINDER
-         i == (int) ('A' + i - 65).
-
-         The 'A' character is now index 0, not 65 (like the ASCII table index).
-         The 'Z' character is now index 25, not 90 (like the ASCII table index).
-        */
+            /*
+             * ASCII INDEX TO CAPITAL LETTER INDEX MAP.
+             * (int) ('A' + i - 65) == i
+             *
+             * The 'A' character is now index 0, not 65 (like the ASCII table index).
+             * The 'Z' character is now index 25, not 90 (like the ASCII table index).
+             */
             char currentCharacter = word.charAt(i);
             int characterIndex = currentCharacter - 65;
 
@@ -158,6 +166,7 @@ public class PangramMaker {
                 uniqueLetters.add(currentCharacter);
             }
         }
+
         return uniqueLetters.size();
     }
 
@@ -175,8 +184,13 @@ public class PangramMaker {
         for (String word : words) {
             int numberOfUniqueLetters = countUniqueLetters(word, alphabetLettersUsed);
 
-            // If a larger unique letters in a word is found, reset the current suggestions.
-            // Significantly improves time complexity since you will only need to go through the loop once.
+            /*
+             * If a "larger unique letters" in a word is found, reset the current suggestions.
+             *
+             * Assuming the list is random, there is no need to restart the loop
+             * because prior words won't have the "larger unique letters" that we are looking for.
+             * Helps significantly improve time complexity since the loop is only ran once.
+             */
             if (numberOfUniqueLetters > largestUniqueLetters) {
                 largestUniqueLetters = numberOfUniqueLetters;
 
@@ -191,6 +205,13 @@ public class PangramMaker {
         }
 
         return suggestions;
+    }
+
+    /**
+     * Print intro.
+     */
+    private static void printIntro() {
+        System.out.println("Welcome to Pangram Maker!");
     }
 
     /**
@@ -219,10 +240,10 @@ public class PangramMaker {
             suggestions.clear();
             suggestions.addAll(randomSuggestions);
         } else {
-            // If suggestion size is 5, the loop below won't run (e.g. 5 - 5 = 0).
+            // If suggestion size is 5, the loop below won't run (5 - 5 = 0).
             int amountOfWordsToFill = 5 - suggestions.size();
 
-            // Find a random word to fill the "pairs.size()" to 5.
+            // Find a random word to fill the suggestion size to 5.
             for (int i = 0; i < amountOfWordsToFill; i += 1) {
                 int randomIndexFromWords = random.nextInt(words.size());
                 String randomWord = words.get(randomIndexFromWords);
@@ -234,17 +255,9 @@ public class PangramMaker {
             Collections.shuffle(suggestions);
         }
 
-        // Remember, suggestions is already randomized above. No need to do again.
         for (String suggestion : suggestions) {
             System.out.println(suggestion);
         }
-    }
-
-    /**
-     * Print intro.
-     */
-    private static void printIntro() {
-        System.out.println("Welcome to Pangram Maker!");
     }
 
     /**
