@@ -75,10 +75,12 @@ public class PangramMaker {
         StringBuilder pangram = new StringBuilder();
 
         while (!isAllAlphabetLettersUsed(alphabetLettersUsed)) {
+            String input;
+
             System.out.println("\nYour pangram so far is: " + colorText("94", String.valueOf(pangram)));
             System.out.print("Enter the next word (in all uppercase) or enter help for suggestions: ");
 
-            String input = scanner.nextLine();
+            input = scanner.nextLine();
 
             // If the input is not a valid word and user is not looking for suggestions.
             if (!words.contains(input) && !input.equals("help")) {
@@ -130,74 +132,111 @@ public class PangramMaker {
     }
 
     /**
-     * Count unused distinct letters.
+     * Count unique letters.
      *
-     * @param word - Word.
+     * @param word                - Word.
      * @param alphabetLettersUsed - Alphabet letters used.
      * @return int
      */
-    private static int countUnusedDistinctLetters(String word, boolean[] alphabetLettersUsed) {
-        LinkedHashSet<Character> uniqueCharacters = new LinkedHashSet<>();
+    private static int countUniqueLetters(String word, boolean[] alphabetLettersUsed) {
+        Set<Character> uniqueLetters = new HashSet<>();
 
         for (int i = 0; i < word.length(); i += 1) {
-            /*
-             REMINDER
-             i == (int) ('A' + i - 65).
+        /*
+         REMINDER
+         i == (int) ('A' + i - 65).
 
-             The 'A' character is now index 0, not 65 (like the ASCII table index).
-             The 'Z' character is now index 25, not 90 (like the ASCII table index).
-            */
-            int characterIndex = word.charAt(i) - 65;
+         The 'A' character is now index 0, not 65 (like the ASCII table index).
+         The 'Z' character is now index 25, not 90 (like the ASCII table index).
+        */
+            char currentCharacter = word.charAt(i);
+            int characterIndex = currentCharacter - 65;
 
             // Check if the letter is not used.
             if (!alphabetLettersUsed[characterIndex]) {
                 // Adding to a set. This will ignore any duplicate characters.
-                uniqueCharacters.add(word.charAt(i));
+                uniqueLetters.add(currentCharacter);
+            }
+        }
+        return uniqueLetters.size();
+    }
+
+    /**
+     * Get suggestions.
+     *
+     * @param words               - Words.
+     * @param alphabetLettersUsed - Alphabet letters used.
+     * @return ArrayList<String>
+     */
+    private static ArrayList<String> getSuggestions(ArrayList<String> words, boolean[] alphabetLettersUsed) {
+        int largestUniqueLetters = 0;
+        ArrayList<String> suggestions = new ArrayList<>();
+
+        for (String word : words) {
+            int numberOfUniqueLetters = countUniqueLetters(word, alphabetLettersUsed);
+
+            // If a larger unique letters in a word is found, reset the current suggestions.
+            // Significantly improves time complexity since you will only need to go through the loop once.
+            if (numberOfUniqueLetters > largestUniqueLetters) {
+                largestUniqueLetters = numberOfUniqueLetters;
+
+                // No need to check the size (creates additional operations).
+                suggestions.clear();
+            }
+
+            // Check required, because without it, anything smaller would print out.
+            if (numberOfUniqueLetters == largestUniqueLetters) {
+                suggestions.add(word);
             }
         }
 
-        return uniqueCharacters.size();
+        return suggestions;
     }
 
     /**
      * Print suggestions.
      *
-     * @param words - Words.
+     * @param words               - Words.
      * @param alphabetLettersUsed - Alphabet letters used.
      */
     private static void printSuggestions(ArrayList<String> words, boolean[] alphabetLettersUsed) {
         Random random = new Random();
-        ArrayList<SuggestionPair> pairs = new ArrayList<>();
+        ArrayList<String> suggestions = getSuggestions(words, alphabetLettersUsed);
 
-        // First find out the unused letters for each word.
-        for (String word : words) {
-            pairs.add(new SuggestionPair(countUnusedDistinctLetters(word, alphabetLettersUsed), word));
-        }
+        // If there are more than 5 suggestions, randomly pick 5 unique ones.
+        if (suggestions.size() > 5) {
+            Set<String> randomSuggestions = new HashSet<>();
 
-        // Sort the pairs in descending order based on the "unusedDistinctLetters".
-        pairs.sort(Comparator.comparingInt(SuggestionPair::unusedDistinctLetters).reversed());
+            while (randomSuggestions.size() < 5) {
+                int randomIndexFromSuggestions = random.nextInt(suggestions.size());
+                String randomWord = suggestions.get(randomIndexFromSuggestions);
 
-        // Truncate the pairs if the size is greater than 5.
-        if (pairs.size() > 5) {
-            pairs = new ArrayList<>(pairs.subList(0, 5));
+                // Adding to a set. This will ignore any duplicate strings.
+                randomSuggestions.add(randomWord);
+            }
+
+            // Clear and replace the suggestions with random suggestions.
+            suggestions.clear();
+            suggestions.addAll(randomSuggestions);
         } else {
-            int amountOfWordsToFill = 5 - pairs.size(); // If size is 5, the for loop won't run.
+            // If suggestion size is 5, the loop below won't run (e.g. 5 - 5 = 0).
+            int amountOfWordsToFill = 5 - suggestions.size();
 
             // Find a random word to fill the "pairs.size()" to 5.
             for (int i = 0; i < amountOfWordsToFill; i += 1) {
-                int randomIndex = random.nextInt(words.size());
-                String randomWord = words.get(randomIndex);
+                int randomIndexFromWords = random.nextInt(words.size());
+                String randomWord = words.get(randomIndexFromWords);
 
-                pairs.add(new SuggestionPair(countUnusedDistinctLetters(randomWord, alphabetLettersUsed), randomWord));
+                suggestions.add(randomWord);
             }
+
+            // Now, randomize the current suggestions.
+            Collections.shuffle(suggestions);
         }
 
-        // Randomize the pairs.
-        Collections.shuffle(pairs);
-
-        // Display the randomized pairs.
-        for (SuggestionPair pair : pairs) {
-            System.out.println(pair.word);
+        // Remember, suggestions is already randomized above. No need to do again.
+        for (String suggestion : suggestions) {
+            System.out.println(suggestion);
         }
     }
 
@@ -232,18 +271,10 @@ public class PangramMaker {
      * Color text.
      *
      * @param ansiColorCode - Ansi color code.
-     * @param message - Message.
+     * @param message       - Message.
      * @return String
      */
     private static String colorText(String ansiColorCode, String message) {
         return "\033[" + ansiColorCode + "m" + message + "\033[0m";
     }
-
-    /**
-     * Suggestion pair.
-     *
-     * @param unusedDistinctLetters - Unused distinct letters.
-     * @param word - Word.
-     */
-    private record SuggestionPair(int unusedDistinctLetters, String word) {}
 }

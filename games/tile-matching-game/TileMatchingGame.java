@@ -72,9 +72,9 @@ public class TileMatchingGame {
     /**
      * Process game.
      *
-     * @param scanner - Scanner.
+     * @param scanner  - Scanner.
      * @param tileGrid - Tile grid.
-     * @param tiles - Tiles.
+     * @param tiles    - Tiles.
      */
     private static void processGame(Scanner scanner, char[][] tileGrid, char[] tiles) {
         boolean isEndOfGame = false;
@@ -160,8 +160,8 @@ public class TileMatchingGame {
     /**
      * Set tile to column.
      *
-     * @param tileGrid - Tile grid.
-     * @param currentTile - Current tile.
+     * @param tileGrid      - Tile grid.
+     * @param currentTile   - Current tile.
      * @param displayColumn - Display column.
      * @return boolean
      */
@@ -185,7 +185,7 @@ public class TileMatchingGame {
     /**
      * Detect and clear out valid set.
      *
-     * @param scanner - Scanner.
+     * @param scanner  - Scanner.
      * @param tileGrid - Tile grid.
      */
     private static void detectAndClearOutValidSet(Scanner scanner, char[][] tileGrid) {
@@ -271,11 +271,11 @@ public class TileMatchingGame {
     /**
      * Count consecutive characters.
      *
-     * @param tileGrid - Tile grid.
-     * @param row - Row.
-     * @param column - Column.
+     * @param tileGrid        - Tile grid.
+     * @param row             - Row.
+     * @param column          - Column.
      * @param targetCharacter - Target character.
-     * @param horizontal - Horizontal.
+     * @param horizontal      - Horizontal.
      * @return int
      */
     private static int countConsecutiveCharacters(char[][] tileGrid, int row, int column, char targetCharacter, boolean horizontal) {
@@ -285,7 +285,7 @@ public class TileMatchingGame {
         if (horizontal) {
             while (
                     column < tileGrid[0].length
-                    && tileGrid[row][column] == targetCharacter // Makes sure the character matches what we're looking for (targetChar).
+                            && tileGrid[row][column] == targetCharacter // Makes sure the character matches what we're looking for (targetChar).
             ) {
                 count += 1;
                 column += 1; // Traverse until the end of the column.
@@ -296,7 +296,7 @@ public class TileMatchingGame {
         if (!horizontal) {
             while (
                     row < tileGrid.length
-                    && tileGrid[row][column] == targetCharacter // Makes sure the character matches what we're looking for (targetChar).
+                            && tileGrid[row][column] == targetCharacter // Makes sure the character matches what we're looking for (targetChar).
             ) {
                 count += 1;
                 row += 1; // Traverse until the end of the row.
@@ -355,7 +355,7 @@ public class TileMatchingGame {
      * Color text.
      *
      * @param ansiColorCode - Ansi color code.
-     * @param message - Message.
+     * @param message       - Message.
      * @return String
      */
     private static String colorText(String ansiColorCode, String message) {
