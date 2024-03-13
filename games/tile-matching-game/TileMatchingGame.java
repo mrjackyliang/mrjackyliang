@@ -81,11 +81,14 @@ public class TileMatchingGame {
 
         while (!isEndOfGame) {
             boolean isColumnValid = false;
+            boolean isSetDetected = true; // Always start out if there was a set detected.
             char currentTile = getRandomTile(tiles);
             int inputColumn = 0;
 
             // Check if there is a valid set of characters to remove.
-            detectAndClearOutValidSet(scanner, tileGrid);
+            while (isSetDetected) {
+                isSetDetected = detectAndClearOutValidSet(scanner, tileGrid);
+            }
 
             System.out.println("\n" + colorText("94", "Next Tile") + ": " + currentTile);
 
@@ -187,8 +190,9 @@ public class TileMatchingGame {
      *
      * @param scanner  - Scanner.
      * @param tileGrid - Tile grid.
+     * @return boolean
      */
-    private static void detectAndClearOutValidSet(Scanner scanner, char[][] tileGrid) {
+    private static boolean detectAndClearOutValidSet(Scanner scanner, char[][] tileGrid) {
         boolean detectedSet = false;
 
         // Check the tile grid horizontally for matching sets.
@@ -266,6 +270,8 @@ public class TileMatchingGame {
                 }
             }
         }
+
+        return detectedSet;
     }
 
     /**
