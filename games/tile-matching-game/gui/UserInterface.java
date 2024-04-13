@@ -114,9 +114,11 @@ public class UserInterface {
         if (color != null) {
             button.setActionCommand(action + "||" + color.getRGB());
             button.setBackground(color);
+            button.setBorder(BorderFactory.createLineBorder(new Color(255, 255, 255, 63), 10));
         } else {
             button.setActionCommand(action + "||" + Color.WHITE.getRGB());
             button.setBackground(Color.WHITE);
+            button.setBorder(BorderFactory.createLineBorder(new Color(255, 255, 255, 63), 10));
         }
 
         // Override the button click event.
@@ -129,11 +131,6 @@ public class UserInterface {
 
         button.setOpaque(true);
         button.setSize(100, 100);
-
-        // macOS Fix: Removes the faint white border that covers the background color.
-        if (Utility.getOSName().equals("Mac OS X")) {
-            button.setBorderPainted(false);
-        }
 
         return button;
     }
@@ -150,6 +147,7 @@ public class UserInterface {
         JFrame frame = new JFrame();
 
         // Customize the window grid.
+        frame.getContentPane().setBackground(new Color(238, 238, 238));
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new GridLayout(rows, columns, 10, 10));
         frame.setResizable(false);

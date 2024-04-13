@@ -7,7 +7,7 @@ import java.util.Random;
  */
 public class Utility {
     private static final String name = "Tile Matching Game";
-    private static final ImageIcon icon = new ImageIcon("images/logo.png");
+    private static final ImageIcon icon = new ImageIcon("logo.png");
 
     /**
      * Color text.
