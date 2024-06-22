@@ -67,6 +67,9 @@ ij_php_new_line_after_php_opening_tag = true
 [{*.markdown,*.md}]
 ij_markdown_max_lines_around_block_elements = 0
 ij_markdown_max_lines_around_header = 0
+
+[*.py]
+indent_size = 4
 ```
 
 [Back to Conventions](https://github.com/mrjackyliang/mrjackyliang/tree/main/conventions)
