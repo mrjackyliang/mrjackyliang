@@ -25,7 +25,7 @@ If you would like to learn more about me, read my [biography](https://www.mrjack
 [![PyCharm](https://img.shields.io/badge/PyCharm-8a2be2?style=for-the-badge&logo=pycharm&logoColor=%23ffffff&color=%2328b8a0)](https://www.jetbrains.com/pycharm/)
 [![Xcode](https://img.shields.io/badge/Xcode-8a2be2?style=for-the-badge&logo=xcode&logoColor=%23ffffff&color=%23147efb)](https://developer.apple.com/xcode/)
 [![Android Studio](https://img.shields.io/badge/Android%20Studio-8a2be2?style=for-the-badge&logo=androidstudio&logoColor=%23ffffff&color=%233ddc84)](https://developer.android.com/studio)
-[![Tower](https://img.shields.io/badge/Tower-8a2be2?style=for-the-badge&logo=git&logoColor=%23ffffff&color=%23002d4f)](https://www.git-tower.com)
+[![Tower](https://img.shields.io/badge/Tower-8a2be2?style=for-the-badge&logo=tower&logoColor=%23ffffff&color=%23002d4f)](https://www.git-tower.com)
 [![Postman](https://img.shields.io/badge/Postman-8a2be2?style=for-the-badge&logo=postman&logoColor=%23ffffff&color=%23ff6c37)](https://www.postman.com)
 [![Sketch](https://img.shields.io/badge/Sketch-8a2be2?style=for-the-badge&logo=sketch&logoColor=%23ffffff&color=%23f7b500)](https://www.sketch.com)
 [![Adobe Photoshop](https://img.shields.io/badge/Adobe%20Photoshop-8a2be2?style=for-the-badge&logo=adobephotoshop&logoColor=%23ffffff&color=%2331a8ff)](https://www.adobe.com/products/photoshop.html)
@@ -51,6 +51,7 @@ If you would like to learn more about me, read my [biography](https://www.mrjack
 | [Conventions](https://github.com/mrjackyliang/mrjackyliang/tree/main/conventions) | Dive into the inner workings of my coding philosophy. It's not just about the code; it's about the why behind it all. Explore the dos, don'ts, and everything in between. |
 | [Games](https://github.com/mrjackyliang/mrjackyliang/tree/main/games)             | Discover a treasure of games that I've written for fun and through school assignments. I'm not much of a gamer, but here it is!                                           |
 | [Snippets](https://github.com/mrjackyliang/mrjackyliang/tree/main/snippets)       | A collection of little code pieces I've crafted over time. Whether it's solving a tricky problem or just experimenting with new ideas, you'll find them all here.         |
+| [TI-84](https://github.com/mrjackyliang/mrjackyliang/tree/main/ti-84)             | Scripts I've written for my TI-84 Plus CE Python Calculator to help me improve my math skills.                                                                            |
 
 ## Support My Work 🎗️
 If you appreciate my work and find value in my open-source projects, I welcome you to express your support!
