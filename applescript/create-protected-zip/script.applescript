@@ -36,7 +36,7 @@ try
 			set pathsToZip to my replaceText(joinListWithQuotes(posixChosenPaths, " "), baseDirectory, "")
 			
 			-- Create the ZIP file from one or more folders.
-			log (do shell script "cd " & baseDirectory & " && zip -P " & zipPassword & " -ry " & posixZipFilePath & " " & pathsToZip)
+			log (do shell script "cd \"" & baseDirectory & "\" && zip -P " & zipPassword & " -ry \"" & posixZipFilePath & "\" " & pathsToZip)
 		else
 			set pathsToZip to my joinListWithQuotes(posixChosenPaths, " ")
 			
