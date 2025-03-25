@@ -41,7 +41,7 @@ try
 			set pathsToZip to my joinListWithQuotes(posixChosenPaths, " ")
 			
 			-- Create the ZIP file from one or more files.
-			log (do shell script "zip -P " & zipPassword & " -rjy " & posixZipFilePath & " " & pathsToZip)
+			log (do shell script "zip -P " & zipPassword & " -rjy \"" & posixZipFilePath & "\" " & pathsToZip)
 		end if
 		
 		-- Wait for the ZIP file to successfully save.
