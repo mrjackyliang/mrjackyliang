@@ -1,21 +1,24 @@
 import math
 
-labels = ("X1", "Y1", "X2", "Y2")
-inputs = []
 
-print("Distance Between Two Points")
-print("({}, {}) and ({}, {})".format(labels[0], labels[1], labels[2], labels[3]))
-print("")
+def main():
+    labels = ("X1", "Y1", "X2", "Y2")
+    inputs = []
 
-while len(inputs) < 4:
-    userInput = input(labels[len(inputs)] + ": ")
+    print("Distance Between Two Points")
+    print("({}, {}) and ({}, {})".format(labels[0], labels[1], labels[2], labels[3]))
+    print("")
 
-    try:
-        numberInput = float(userInput)
-        inputs.append(numberInput)
-    except ValueError:
-        print("\"{}\" is not an integer".format(userInput))
+    while len(inputs) < 4:
+        user_input = input(labels[len(inputs)] + ": ")
+        try:
+            number_input = float(user_input)
+            inputs.append(number_input)
+        except ValueError:
+            print("\"{}\" is not a number".format(user_input))
 
-result = math.sqrt(math.pow((inputs[2] - inputs[0]), 2) + math.pow((inputs[3] - inputs[1]), 2))
+    result = math.sqrt((inputs[2] - inputs[0]) ** 2 + (inputs[3] - inputs[1]) ** 2)
+    print("Distance: {}".format(result))
 
-print("Distance: {}".format(result))
+
+main()
