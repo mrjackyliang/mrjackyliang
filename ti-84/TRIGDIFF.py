@@ -3,10 +3,14 @@ ITEMS = [
     ("cos(x)", "-sin(x)", ["sin(x) + C"]),
     ("-sin(x)", "-cos(x)", ["cos(x) + C"]),
     ("-cos(x)", "sin(x)", ["-sin(x) + C"]),
-    ("tan(x)", "sec(x)²", ["ln|sec(x)| + C", "= -ln|cos(x)| + C"]),
-    ("sec(x)", "sec(x)*tan(x)", ["ln|sec(x)+tan(x)| + C"]),
-    ("csc(x)", "-csc(x)*cot(x)", ["-ln|csc(x)+cot(x)| + C"]),
-    ("cot(x)", "-csc(x)²", ["ln|sin(x)| + C", "= -ln|csc(x)| + C"]),
+    ("tan(x)", "sec^{2}(x)", ["ln |sec(x)| + C", "= -ln |cos(x)| + C"]),
+    ("csc(x)", "-csc(x) * cot(x)", ["-ln |csc(x) + cot(x)| + C"]),
+    ("sec(x)", "sec(x) * tan(x)", ["ln |sec(x) + tan(x)| + C"]),
+    ("cot(x)", "-csc^{2}(x)", ["ln |sin(x)| + C", "= -ln |csc(x)| + C"]),
+    ("csc^{2}", "-2 csc^{2}(x) cot(x)", ["-cot(x) + C"]),
+    ("sec^{2}", "2 sec^{2}(x) tan(x)", ["tan(x) + C"]),
+    ("cot^{2}", "-2 cot(x) csc^{2}(x)", ["-cot(x) - x + C"]),
+    ("a^{x}", "a^{x} * ln(a)", ["[a^{x} / ln(a)] + C"]),
 ]
 
 MENU_PAGE = 4
@@ -16,14 +20,14 @@ def show_menu_page(start):
     end = min(start + MENU_PAGE, len(ITEMS))
 
     print("Trigonometry")
-    print("Derivatives / Antiderivatives")
+    print("Derivative / Antiderivative")
     print("")
 
     for i in range(start, end):
         print("{}) {}".format(i + 1, ITEMS[i][0]))
 
     print("")
-    print("n) Next  p) Prev  0) Quit")
+    print("0) Next  00) Prev  000) Quit")
 
 
 def show_item(i):
@@ -47,19 +51,19 @@ def main():
         print("Choice? ", end="")
         s = input().strip().upper()
         if s == "0":
-            print("Bye.")
-            break
-        if s == "N":
             start += MENU_PAGE
             if start >= len(ITEMS):
                 start = 0
             continue
-        if s == "P":
+        if s == "00":
             start -= MENU_PAGE
             if start < 0:
                 last = ((len(ITEMS) - 1) // MENU_PAGE) * MENU_PAGE
                 start = max(0, last)
             continue
+        if s == "000":
+            print("Bye.")
+            break
         if s.isdigit():
             k = int(s)
             if 1 <= k <= len(ITEMS):

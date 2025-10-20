@@ -1,90 +1,46 @@
 SECTIONS = [
-    ("Pythagorean", [
-        "sin²x + cos²x = 1",
-        "1 + tan²x = sec²x",
-        "1 + cot²x = csc²x",
+    ("Pythagorean Theorem", [
+        "sin^{2}(x) + cos^{2}(x) = 1",
+        "1 + tan^{2}(x) = sec^{2}(x)",
+        "1 + cot^{2}(x) = csc^{2}(x)",
     ]),
-    ("Reciprocal", [
-        "sin(x) = 1/csc(x)",
-        "cos(x) = 1/sec(x)",
-        "tan(x) = 1/cot(x)",
-        "csc(x) = 1/sin(x)",
-        "sec(x) = 1/cos(x)",
-        "cot(x) = 1/tan(x)",
+    ("Integration By Parts", [
+        "int u dv = uv - int v du",
+        "Clue: Choose 'u' using LIPET",
+        "   L: ln x, log x",
+        "   I: arcsin(x), arctan(x)",
+        "   P: x^{2}, sqrt(x)",
+        "   E: e^{x}, 2^{x}",
+        "   T: sin(x), cos(x)",
     ]),
-    ("Even / Odd", [
-        "sin(-x) = -sin(x)   (odd)",
-        "cos(-x) =  cos(x)   (even)",
-        "tan(-x) = -tan(x)   (odd)",
-        "csc(-x) = -csc(x)   (odd)",
-        "sec(-x) =  sec(x)   (even)",
-        "cot(-x) = -cot(x)   (odd)",
+    ("Basic Exponential Integral", [
+        "int e^{at} dt",
+        "= (1 / a) e^{at} + C",
     ]),
-    ("Double-angle", [
-        "sin(2x) = 2 sin(x) cos(x)",
-        "cos(2x) = cos²x - sin²x",
-        "        = 2 cos²x - 1",
-        "        = 1 - 2 sin²x",
-        "tan(2x) = 2 tan(x) / (1 - tan²x)",
+    ("Inverse Tangent Function", [
+        "int (1 / x^{2} + a^{2})",
+        "= (1 / a) arctan(x / a) + C"
     ]),
-    ("Half-angle / Power reduction", [
-        "sin²x = (1 - cos(2x)) / 2",
-        "cos²x = (1 + cos(2x)) / 2",
+    ("Trig Sub: a^{2} - x^{2}", [
+        "sqrt(a^{2} - x^{2})",
+        "   x = a sin(t)",
+        "  dx = a cos(t) dt",
+        "",
+        "identity: 1 - sin^{2} = cos^{2}",
     ]),
-    ("Product-to-sum", [
-        "sin A cos B",
-        " = 1/2 [ sin(A+B) + sin(A-B) ]",
-        "cos A cos B",
-        " = 1/2 [ cos(A+B) + cos(A-B) ]",
-        "sin A sin B",
-        " = 1/2 [ cos(A-B) - cos(A+B) ]",
+    ("Trig Sub: a^{2} + x^{2}", [
+        "sqrt(a^{2} + x^{2})",
+        "   x = a tan(t)",
+        "  dx = a sec^{2}(t) dt",
+        "",
+        "identity: 1 + tan^{2} = sec^{2}",
     ]),
-    ("Inverse-trig derivatives", [
-        "d/dx arcsin(x)",
-        " = 1 / sqrt(1 - x²)",
-        "d/dx arccos(x)",
-        " = -1 / sqrt(1 - x²)",
-        "d/dx arctan(x)",
-        " = 1 / (1 + x²)",
+    ("Trig Sub: x^{2} - a^{2}", [
+        "sqrt(x^{2} - a^{2})",
+        "   x = a sec(t)",
+        "  dx = a sec(t) tan(t) dt",
         "",
-        "d/dx arccsc(x)",
-        " = -1 / ( |x| sqrt(x² - 1) )",
-        "d/dx arcsec(x)",
-        " = 1 / ( |x| sqrt(x² - 1) )",
-        "d/dx arccot(x)",
-        " = -1 / (1 + x²)",
-        "",
-    ]),
-    ("Trig substitution patterns", [
-        "sqrt(a² - x²):",
-        "  x = a sin(t)",
-        " dx = a cos(t) dt",
-        "",
-        " identity: 1 - sin² = cos²",
-        "",
-        "",
-        "sqrt(a² + x²):",
-        "  x = a tan(t)",
-        " dx = a sec²(t) dt",
-        "",
-        " identity: 1 + tan² = sec²",
-        "",
-        "",
-        "sqrt(x² - a²):",
-        "  x = a sec(t)",
-        " dx = a sec(t)tan(t) dt",
-        "",
-        " identity: sec² - 1 = tan²",
-        "",
-        "",
-    ]),
-    ("Exponential (Euler) forms", [
-        "e^(i x)",
-        " = cos(x) + i sin(x)",
-        "cos(x)",
-        " = (e^(i x) + e^(-i x)) / 2",
-        "sin(x)",
-        " = (e^(i x) - e^(-i x)) / (2 i)",
+        "identity: sec^{2} - 1 = tan^{2}",
     ]),
 ]
 
@@ -112,7 +68,7 @@ def show_menu_page(start):
         print("{}) {}".format(i + 1, SECTIONS[i][0]))
 
     print("")
-    print("n) Next  p) Prev  0) Quit")
+    print("0) Next  00) Prev  000) Quit")
 
 
 def show_section(idx):
@@ -153,17 +109,17 @@ def main():
         s = input().strip().upper()
 
         if s == "0":
-            print("Bye.")
-            break
-        elif s == "N":
             start += MENU_PAGE
             if start >= len(SECTIONS):
                 start = 0
-        elif s == "P":
+        elif s == "00":
             start -= MENU_PAGE
             if start < 0:
                 last = ((len(SECTIONS) - 1) // MENU_PAGE) * MENU_PAGE
                 start = max(0, last)
+        elif s == "000":
+            print("Bye.")
+            break
         elif s.isdigit():
             k = int(s)
             if 1 <= k <= len(SECTIONS):
