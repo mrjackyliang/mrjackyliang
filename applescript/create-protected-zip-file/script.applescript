@@ -1,330 +1,292 @@
-------------------------------------------------------------------
--- Helper: joinListWithQuotes
-------------------------------------------------------------------
-on joinListWithQuotes(posixChosenPaths, delimiter)
-  log "DEBUG -> joinListWithQuotes: count=" & (count of posixChosenPaths) & " delimiter=" & delimiter
-  set theResult to ""
-
-  repeat with i from 1 to count of posixChosenPaths
-    set theResult to theResult & "\"" & item i of posixChosenPaths & "\""
-
-    if i is not equal to (count of posixChosenPaths) then
-      set theResult to theResult & delimiter
-    end if
-  end repeat
-
-  log "DEBUG -> joinListWithQuotes result: " & theResult
-  return theResult
-end joinListWithQuotes
+-- ===========================================================================
+-- Create Protected ZIP File
+--
+-- Creates a password-protected ZIP file from user-selected files or folders.
+--
+-- Notes:
+-- * Uses the macOS built-in "zip" and "expect" commands
+-- * This script is interactive only
+--
+-- Accepted Risks:
+-- * Uses legacy ZIP encryption (not AES-256); weak against offline cracking
+-- * Password is briefly stored in a temp file during zip creation
+-- ===========================================================================
 
 ------------------------------------------------------------------
--- Helper: replaceText
+-- Properties
 ------------------------------------------------------------------
-on replaceText(originalString, searchString, replacementString)
-  log "DEBUG -> replaceText: search=" & searchString & " replacement=" & replacementString
-  log "DEBUG -> replaceText: original=" & originalString
-  set AppleScript's text item delimiters to searchString
-  set textItems to text items of originalString
-  set AppleScript's text item delimiters to replacementString
-  set modifiedString to textItems as text
-  set AppleScript's text item delimiters to ""
-
-  log "DEBUG -> replaceText result: " & modifiedString
-  return modifiedString
-end replaceText
+property notificationTitle : "Create Protected ZIP File"
+property notificationSound : "Blow"
 
 ------------------------------------------------------------------
 -- Helper: findCommonDirectoryPath
 ------------------------------------------------------------------
-on findCommonDirectoryPath(posixChosenPaths)
-  log "DEBUG -> findCommonDirectoryPath: count=" & (count of posixChosenPaths)
-  if (count of posixChosenPaths) = 0 then
-    log "DEBUG -> findCommonDirectoryPath: empty list"
-    return ""
-  end if
+on findCommonDirectoryPath(posixPaths)
+	log "DEBUG -> findCommonDirectoryPath: count=" & (count of posixPaths)
+	if (count of posixPaths) = 0 then
+		log "DEBUG -> findCommonDirectoryPath: empty list"
+		return ""
+	end if
 
-  set path1 to item 1 of posixChosenPaths
-  set path1Components to path1's text items
-  set maxComponents to (count path1Components)
-  log "DEBUG -> findCommonDirectoryPath: base=" & path1
+	set {oldTID, AppleScript's text item delimiters} to {AppleScript's text item delimiters, "/"}
 
-  repeat with pathIndex from 2 to (count of posixChosenPaths)
-    set nextPath to item pathIndex of posixChosenPaths
-    if (maxComponents = 0) then
-      exit repeat
-    end if
+	try
+		set path1Components to text items of item 1 of posixPaths
 
-    set theseComponents to nextPath's text items
-    set componentCount to (count theseComponents)
+		if (count of posixPaths) = 1 then
+			-- Single path: return its parent directory
+			if (count of path1Components) < 3 then
+				set commonPath to "/"
+			else
+				set parentComponents to items 1 thru -3 of path1Components
+				set commonPath to (parentComponents as text) & "/"
+			end if
+			set AppleScript's text item delimiters to oldTID
+			log "DEBUG -> findCommonDirectoryPath: single path result=" & commonPath
+			return commonPath
+		end if
 
-    if (componentCount < maxComponents) then
-      set maxComponents to componentCount
-    end if
+		set maxComponents to count of path1Components
 
-    repeat with c from 1 to maxComponents
-      if (theseComponents's item c is not equal to path1Components's item c) then
-        set maxComponents to c - 1
-        exit repeat
-      end if
-    end repeat
-  end repeat
+		repeat with pathIndex from 2 to (count of posixPaths)
+			set nextComponents to text items of item pathIndex of posixPaths
+			set componentCount to count of nextComponents
 
-  if (maxComponents > 0) then
-    set commonPath to path1's text 1 thru text item maxComponents
-  else
-    set commonPath to ""
-  end if
+			if componentCount < maxComponents then
+				set maxComponents to componentCount
+			end if
 
-  if (count of posixChosenPaths) = 1 then
-    set commonPath to removeLastDirectory(commonPath)
-    log "DEBUG -> findCommonDirectoryPath: single path result=" & commonPath
-    return commonPath
-  end if
+			repeat with c from 1 to maxComponents
+				if item c of nextComponents is not equal to item c of path1Components then
+					set maxComponents to c - 1
+					exit repeat
+				end if
+			end repeat
+		end repeat
 
-  log "DEBUG -> findCommonDirectoryPath: result=" & commonPath
-  return commonPath
+		if maxComponents > 0 then
+			set commonComponents to items 1 thru maxComponents of path1Components
+			set commonPath to (commonComponents as text)
+			if commonPath does not end with "/" then
+				set commonPath to commonPath & "/"
+			end if
+		else
+			set commonPath to ""
+		end if
+
+		set AppleScript's text item delimiters to oldTID
+	on error errMsg number errNum
+		set AppleScript's text item delimiters to oldTID
+		error errMsg number errNum
+	end try
+
+	log "DEBUG -> findCommonDirectoryPath: result=" & commonPath
+	return commonPath
 end findCommonDirectoryPath
 
 ------------------------------------------------------------------
--- Helper: removeLastDirectory
+-- Helper: expectZip
 ------------------------------------------------------------------
-on removeLastDirectory(filePath)
-  log "DEBUG -> removeLastDirectory: input=" & filePath
-  set {oldTID, AppleScript's text item delimiters} to {AppleScript's text item delimiters, "/"}
-  set myArray to text items of filePath
-  set concatenatedString to ""
+on expectZip(zipFlags, posixZipFilePath, zipPassword, quotedPaths, cdPrefix)
+	log "DEBUG -> expectZip: flags=" & zipFlags
 
-  repeat with i from 1 to (count myArray) - 2
-    set concatenatedString to concatenatedString & item i of myArray
-    if i < (count myArray) then
-      set concatenatedString to concatenatedString & "/"
-    end if
-  end repeat
+	-- Write password to temp file (keeps it off the command line)
+	set passwordPath to do shell script "mktemp"
+	-- Write expect script to temp file
+	set expectPath to do shell script "mktemp"
 
-  set AppleScript's text item delimiters to oldTID
+	try
+		set passFile to open for access POSIX file passwordPath with write permission
+		try
+			write zipPassword to passFile
+		on error errMsg2 number errNum2
+			close access passFile
+			error errMsg2 number errNum2
+		end try
+		close access passFile
 
-  log "DEBUG -> removeLastDirectory: result=" & concatenatedString
-  return concatenatedString
-end removeLastDirectory
+		set expectFile to open for access POSIX file expectPath with write permission
+		try
+			write ("set timeout 30" & linefeed & ¬
+				"set passfile [lindex $argv 0]" & linefeed & ¬
+				"set zipfile [lindex $argv 1]" & linefeed & ¬
+				"set paths [lrange $argv 2 end]" & linefeed & ¬
+				"set f [open $passfile r]" & linefeed & ¬
+				"set pass [read -nonewline $f]" & linefeed & ¬
+				"close $f" & linefeed & ¬
+				"spawn zip " & zipFlags & " $zipfile -- {*}$paths" & linefeed & ¬
+				"expect {" & linefeed & ¬
+				"  -glob \"*assword*\" { send \"$pass\\r\" }" & linefeed & ¬
+				"  timeout { puts stderr \"Timed out waiting for password prompt\"; exit 1 }" & linefeed & ¬
+				"}" & linefeed & ¬
+				"expect {" & linefeed & ¬
+				"  -glob \"*assword*\" { send \"$pass\\r\" }" & linefeed & ¬
+				"  timeout { puts stderr \"Timed out waiting for verify prompt\"; exit 1 }" & linefeed & ¬
+				"}" & linefeed & ¬
+				"set timeout -1" & linefeed & ¬
+				"expect eof" & linefeed & ¬
+				"lassign [wait] pid spawnid os_error exit_status" & linefeed & ¬
+				"exit $exit_status") to expectFile
+		on error errMsg2 number errNum2
+			close access expectFile
+			error errMsg2 number errNum2
+		end try
+		close access expectFile
 
-------------------------------------------------------------------
--- CLI: normalizeMode
-------------------------------------------------------------------
-on normalizeMode(modeValue)
-  log "DEBUG -> normalizeMode: input=" & modeValue
-  if modeValue is "files" or modeValue is "Files" then
-    log "DEBUG -> normalizeMode: output=Files"
-    return "Files"
-  end if
+		set zipOutput to do shell script cdPrefix & "expect " & quoted form of expectPath & " " & quoted form of passwordPath & " " & quoted form of posixZipFilePath & quotedPaths
+		do shell script "rm -f " & quoted form of expectPath & " " & quoted form of passwordPath
+	on error errMsg number errNum
+		do shell script "rm -f " & quoted form of expectPath & " " & quoted form of passwordPath
+		error errMsg number errNum
+	end try
 
-  if modeValue is "folders" or modeValue is "Folders" then
-    log "DEBUG -> normalizeMode: output=Folders"
-    return "Folders"
-  end if
-
-  error "Invalid --mode value. Use files or folders."
-end normalizeMode
-
-------------------------------------------------------------------
--- CLI: parseArgs
-------------------------------------------------------------------
-on parseArgs(argv)
-  log "DEBUG -> parseArgs: argv count=" & (count of argv)
-  set filesOrFolders to ""
-  set posixZipFilePath to ""
-  set zipPassword to ""
-  set posixChosenPaths to {}
-  set i to 1
-
-  repeat while i <= (count of argv)
-    set arg to item i of argv
-    log "DEBUG -> parseArgs arg[" & i & "]: " & arg
-
-    if arg is "--" then
-    -- Ignore end-of-options marker if passed through.
-    else if arg is "--files" then
-      set filesOrFolders to "Files"
-      log "DEBUG -> parseArgs: mode=Files"
-    else if arg is "--folders" then
-      set filesOrFolders to "Folders"
-      log "DEBUG -> parseArgs: mode=Folders"
-    else if arg is "--mode" then
-      set i to i + 1
-      if i > (count of argv) then
-        error "Missing value for --mode."
-      end if
-      set filesOrFolders to my normalizeMode(item i of argv)
-      log "DEBUG -> parseArgs: mode=" & filesOrFolders
-    else if arg is "--zip" then
-      set i to i + 1
-      if i > (count of argv) then
-        error "Missing value for --zip."
-      end if
-      set posixZipFilePath to item i of argv
-      log "DEBUG -> parseArgs: zip=" & posixZipFilePath
-    else if arg is "--password" then
-      set i to i + 1
-      if i > (count of argv) then
-        error "Missing value for --password."
-      end if
-      set zipPassword to item i of argv
-      log "DEBUG -> parseArgs: password=" & zipPassword
-    else
-      set end of posixChosenPaths to arg
-      log "DEBUG -> parseArgs: path=" & arg
-    end if
-
-    set i to i + 1
-  end repeat
-
-  if filesOrFolders is "" then
-    error "Missing --files or --folders."
-  end if
-
-  if posixZipFilePath is "" then
-    error "Missing --zip <path>."
-  end if
-
-  if zipPassword is "" then
-    error "Missing --password <value>."
-  end if
-
-  if (count of posixChosenPaths) = 0 then
-    error "Missing paths to zip."
-  end if
-
-  log "DEBUG -> parseArgs result: mode=" & filesOrFolders
-  log "DEBUG -> parseArgs result: zip=" & posixZipFilePath
-  log "DEBUG -> parseArgs result: password=" & zipPassword
-  log "DEBUG -> parseArgs result: paths=" & (count of posixChosenPaths)
-  return {filesOrFolders, posixZipFilePath, zipPassword, posixChosenPaths}
-end parseArgs
+	return zipOutput
+end expectZip
 
 ------------------------------------------------------------------
 -- Core: createProtectedZip
 ------------------------------------------------------------------
 on createProtectedZip(posixChosenPaths, posixZipFilePath, zipPassword, filesOrFolders)
-  log "DEBUG -> createProtectedZip: start"
-  log "DEBUG -> mode: " & filesOrFolders
-  log "DEBUG -> items: " & (count of posixChosenPaths)
-  log "DEBUG -> output: " & posixZipFilePath
+	log "DEBUG -> createProtectedZip: start"
+	log "DEBUG -> mode: " & filesOrFolders
+	log "DEBUG -> items: " & (count of posixChosenPaths)
+	log "DEBUG -> output: " & posixZipFilePath
 
-  if zipPassword is not equal to "" then
-    log "DEBUG -> password: " & zipPassword
-    if filesOrFolders is "Folders" then
-      set baseDirectory to my findCommonDirectoryPath(posixChosenPaths)
-      if baseDirectory is "" then
-        error "Error creating protected ZIP file. Unable to determine base directory."
-      end if
+	if filesOrFolders is "Folders" then
+		-- Guard against saving ZIP inside a selected source folder (recursive self-inclusion)
+		-- Resolve real paths to handle symlinks
+		repeat with posixPath in posixChosenPaths
+			set resolvedSource to do shell script "cd " & quoted form of (contents of posixPath) & " 2>/dev/null && pwd -P || echo " & quoted form of (contents of posixPath)
+			if resolvedSource does not end with "/" then set resolvedSource to resolvedSource & "/"
+			set zipParent to do shell script "dirname " & quoted form of posixZipFilePath
+			set resolvedZipParent to do shell script "cd " & quoted form of zipParent & " 2>/dev/null && pwd -P || echo " & quoted form of zipParent
+			if (resolvedZipParent & "/") starts with resolvedSource then
+				error "ZIP file cannot be saved inside a selected source folder. Choose a different save location."
+			end if
+		end repeat
 
-      set pathsToZip to my replaceText(joinListWithQuotes(posixChosenPaths, " "), baseDirectory, "")
-      log "DEBUG -> baseDirectory: " & baseDirectory
-      log "DEBUG -> pathsToZip: " & pathsToZip
+		set baseDirectory to my findCommonDirectoryPath(posixChosenPaths)
+		if baseDirectory is "" then
+			error "Error creating protected ZIP file. Unable to determine base directory."
+		end if
+		log "DEBUG -> baseDirectory: " & baseDirectory
 
-      -- Create the ZIP file from one or more folders.
-      log "DEBUG -> zip command: folders"
-      set zipOutput to do shell script "cd " & quoted form of baseDirectory & " && zip -P " & quoted form of zipPassword & " -ry " & quoted form of posixZipFilePath & " " & pathsToZip
-      log "DEBUG -> zip output:" & return & zipOutput
-    else if filesOrFolders is "Files" then
-      set pathsToZip to my joinListWithQuotes(posixChosenPaths, " ")
-      log "DEBUG -> pathsToZip: " & pathsToZip
+		-- Build quoted relative paths
+		set quotedRelativePaths to ""
+		set baseLen to length of baseDirectory
+		repeat with posixPath in posixChosenPaths
+			set relativePath to text (baseLen + 1) thru -1 of posixPath
+			-- Strip trailing slash if present
+			if relativePath ends with "/" then
+				set relativePath to text 1 thru -2 of relativePath
+			end if
+			log "DEBUG -> relativePath: " & relativePath
+			set quotedRelativePaths to quotedRelativePaths & " " & quoted form of relativePath
+		end repeat
 
-      -- Create the ZIP file from one or more files.
-      log "DEBUG -> zip command: files"
-      set zipOutput to do shell script "zip -P " & quoted form of zipPassword & " -rjy " & quoted form of posixZipFilePath & " " & pathsToZip
-      log "DEBUG -> zip output:" & return & zipOutput
-    else
-      error "Error creating protected ZIP file. Invalid selection."
-    end if
+		-- Remove existing file to prevent in-place update (stale entries could persist)
+		do shell script "rm -f " & quoted form of posixZipFilePath
 
-    -- Wait for the ZIP file to successfully save.
-    delay 2
+		log "DEBUG -> zip command: folders"
+		set zipOutput to my expectZip("-ery", posixZipFilePath, zipPassword, quotedRelativePaths, "cd " & quoted form of baseDirectory & " && ")
+		log "DEBUG -> zip completed"
 
-    -- Check if the ZIP file was created successfully.
-    if (do shell script "[ -e " & quoted form of posixZipFilePath & " ] && echo 'true' || echo 'false'") is not equal to "true" then
-      error "Error creating protected ZIP file. ZIP file not found in selected path."
-    end if
-    log "DEBUG -> zip created"
-  else
-    error "Error creating protected ZIP file. Password is required."
-  end if
+	else if filesOrFolders is "Files" then
+		-- Check for duplicate basenames (zip -j flattens paths, causing collisions)
+		set basenames to {}
+		set {oldTID, AppleScript's text item delimiters} to {AppleScript's text item delimiters, "/"}
+		repeat with posixPath in posixChosenPaths
+			set pathComponents to text items of (contents of posixPath)
+			set basename to last item of pathComponents
+			if basenames contains basename then
+				set AppleScript's text item delimiters to oldTID
+				error "Multiple files named \"" & basename & "\" were selected. Flat ZIP mode would cause one to overwrite the other."
+			end if
+			set end of basenames to basename
+		end repeat
+		set AppleScript's text item delimiters to oldTID
 
-  log "DEBUG -> createProtectedZip: done"
-  return true
+		-- Quote each absolute path individually
+		set quotedPaths to ""
+		repeat with posixPath in posixChosenPaths
+			set quotedPaths to quotedPaths & " " & quoted form of posixPath
+		end repeat
+
+		-- Remove existing file to prevent in-place update (stale entries could persist)
+		do shell script "rm -f " & quoted form of posixZipFilePath
+
+		log "DEBUG -> zip command: files"
+		set zipOutput to my expectZip("-erjy", posixZipFilePath, zipPassword, quotedPaths, "")
+		log "DEBUG -> zip completed"
+	else
+		error "Error creating protected ZIP file. Invalid selection."
+	end if
+
+	-- Wait for the ZIP file to be fully written
+	delay 2
+
+	-- Verify the ZIP file was created
+	if (do shell script "[ -e " & quoted form of posixZipFilePath & " ] && echo 'true' || echo 'false'") is not equal to "true" then
+		error "Error creating protected ZIP file. ZIP file not found in selected path."
+	end if
+	log "DEBUG -> zip created successfully"
+
+	log "DEBUG -> createProtectedZip: done"
+	return true
 end createProtectedZip
-
-------------------------------------------------------------------
--- Entry: runWithArgs
-------------------------------------------------------------------
-on runWithArgs(argv)
-  log "DEBUG -> runWithArgs: start"
-  log "DEBUG -> runWithArgs: argv count=" & (count of argv)
-  set {filesOrFolders, posixZipFilePath, zipPassword, posixChosenPaths} to my parseArgs(argv)
-  my createProtectedZip(posixChosenPaths, posixZipFilePath, zipPassword, filesOrFolders)
-  log "DEBUG -> runWithArgs: done"
-end runWithArgs
-
-------------------------------------------------------------------
--- Entry: runInteractive
-------------------------------------------------------------------
-on runInteractive()
-  log "DEBUG -> runInteractive: start"
-  try
-    display dialog "Do you want to select files or folders to include in the protected ZIP file?" buttons {"Files", "Folders", "Cancel"} default button "Cancel"
-    set filesOrFolders to button returned of the result
-    log "DEBUG -> selection: " & filesOrFolders
-
-    if filesOrFolders is "Files" then
-    -- Prompt the user to choose one or more files.
-      set chosenPaths to choose file with prompt "Select the files you want to include in the protected ZIP file:" with multiple selections allowed
-    else if filesOrFolders is "Folders" then
-    -- Prompt the user to choose one or more folders.
-      set chosenPaths to choose folder with prompt "Select the folders you want to include in the protected ZIP file:" with multiple selections allowed
-    else
-      error "User canceled."
-    end if
-
-    set posixChosenPaths to {}
-
-    -- Convert paths to POSIX-compliant.
-    repeat with chosenPath in chosenPaths
-      set end of posixChosenPaths to POSIX path of chosenPath
-    end repeat
-    log "DEBUG -> selected paths: " & (count of posixChosenPaths)
-
-    -- Define the destination ZIP file path.
-    set zipFilePath to choose file name with prompt "Choose a name and location for the protected ZIP file:" default name "Archive.zip"
-
-    -- Convert the ZIP file path to a POSIX path.
-    set posixZipFilePath to POSIX path of zipFilePath
-    log "DEBUG -> output: " & posixZipFilePath
-
-    -- Prompt the user to enter a password.
-    display dialog "Enter a password for the protected ZIP file:" default answer "" buttons {"Cancel", "OK"} default button "OK" with hidden answer
-    set zipPassword to text returned of the result
-    log "DEBUG -> password: " & zipPassword
-
-    my createProtectedZip(posixChosenPaths, posixZipFilePath, zipPassword, filesOrFolders)
-
-    display notification "Protected ZIP file created successfully!" with title "Create Protected ZIP" sound name "Blow"
-
-  on error errMsg
-    if errMsg does not contain "User canceled." then
-      display dialog errMsg buttons {"OK"} with icon stop default button "OK"
-    end if
-  end try
-  log "DEBUG -> runInteractive: done"
-end runInteractive
 
 ------------------------------------------------------------------
 -- Entry: run
 ------------------------------------------------------------------
 on run argv
-  log "DEBUG -> run: argv count=" & (count of argv)
-  if (count of argv) > 0 then
-    my runWithArgs(argv)
-  else
-    my runInteractive()
-  end if
-  log "DEBUG -> run: done"
+	if (count of argv) > 0 then
+		display dialog "This script must be run interactively. Command-line arguments are not supported." buttons {"OK"} with icon stop default button "OK"
+		return
+	end if
+
+	try
+		log "DEBUG -> run: start"
+
+		-- Ask whether to zip files or folders
+		display dialog "Do you want to select files or folders to include in the protected ZIP file?" buttons {"Cancel", "Files", "Folders"} cancel button "Cancel"
+		set filesOrFolders to button returned of the result
+		log "DEBUG -> selection: " & filesOrFolders
+
+		if filesOrFolders is "Files" then
+			set chosenPaths to choose file with prompt "Select the files you want to include in the protected ZIP file:" with multiple selections allowed
+		else
+			set chosenPaths to choose folder with prompt "Select the folders you want to include in the protected ZIP file:" with multiple selections allowed
+		end if
+
+		-- Convert alias paths to POSIX paths
+		set posixChosenPaths to {}
+		repeat with chosenPath in chosenPaths
+			set end of posixChosenPaths to POSIX path of chosenPath
+		end repeat
+		log "DEBUG -> selected paths: " & (count of posixChosenPaths)
+
+		-- Choose save location for the ZIP file
+		set zipFilePath to choose file name with prompt "Choose a name and location for the protected ZIP file:" default name "Archive.zip"
+		set posixZipFilePath to POSIX path of zipFilePath
+		log "DEBUG -> output: " & posixZipFilePath
+
+		-- Prompt for password
+		repeat
+			display dialog "Enter a password for the protected ZIP file:" default answer "" buttons {"Cancel", "OK"} cancel button "Cancel" default button "OK" with hidden answer
+			set zipPassword to text returned of the result
+			if zipPassword is not "" then exit repeat
+			display dialog "Password cannot be empty." with icon stop buttons {"OK"} default button "OK"
+		end repeat
+
+		my createProtectedZip(posixChosenPaths, posixZipFilePath, zipPassword, filesOrFolders)
+
+		display notification "Protected ZIP file created successfully!" with title notificationTitle sound name notificationSound
+
+		log "DEBUG -> run: done"
+	on error errMsg number errNum
+		if errMsg contains "User canceled" or errNum is equal to -128 then
+			return
+		end if
+		display dialog errMsg buttons {"OK"} with icon stop default button "OK"
+	end try
 end run

@@ -1,0 +1,12 @@
+#!/bin/sh
+# Git clean filter for .applescript files.
+# Script Editor saves as UTF-16 with CR line endings.
+# This converts to UTF-8 with LF line endings for clean diffs.
+tmpf=$(mktemp)
+cat > "$tmpf"
+if file -b "$tmpf" | grep -qi utf-16; then
+    iconv -f UTF-16 -t UTF-8 < "$tmpf" | tr '\r' '\n'
+else
+    tr '\r' '\n' < "$tmpf"
+fi
+rm -f "$tmpf"
