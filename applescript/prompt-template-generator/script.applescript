@@ -453,8 +453,12 @@ on runEditPrompt()
 		return
 	end if
 
+	repeat
+	set promptNames to my loadPromptNames()
+	if (count of promptNames) is 0 then exit repeat
+
 	set selectedNames to choose from list promptNames with title notificationTitle with prompt "Select a prompt to edit:" without multiple selections allowed without empty selection allowed
-	if selectedNames is false then error number -128
+	if selectedNames is false then exit repeat
 	set selectedName to item 1 of selectedNames
 
 	set targetIndex to my findPromptIndex(selectedName)
@@ -464,40 +468,52 @@ on runEditPrompt()
 
 	set promptRecord to my loadPrompt(targetIndex)
 
-	-- Prompt name
-	set nameDefault to promptName of promptRecord
-	repeat
-		set userResponse to display dialog "Rename the prompt, or leave as-is:" default answer nameDefault with title notificationTitle buttons {"Cancel", "Save"} default button "Save" with icon note
-		if button returned of userResponse is not "Save" then error number -128
-		set newName to text returned of userResponse
-		if newName is "" then
-			display dialog "Prompt name cannot be empty." with icon caution buttons {"OK"} default button "OK"
-		else if newName is managePromptsLabel then
-			display dialog "The name \"" & managePromptsLabel & "\" is reserved. Please choose a different name." with icon caution buttons {"OK"} default button "OK"
-			set nameDefault to newName
-		else if newName is not selectedName and my findPromptIndex(newName) is not -1 then
-			display dialog "A prompt named \"" & newName & "\" already exists." with icon caution buttons {"OK"} default button "OK"
-			set nameDefault to newName
+	try
+		-- Prompt name
+		set nameDefault to promptName of promptRecord
+		repeat
+			set userResponse to display dialog "Rename the prompt, or leave as-is:" default answer nameDefault with title notificationTitle buttons {"Cancel", "Save"} default button "Save" with icon note
+			if button returned of userResponse is not "Save" then error number -128
+			set newName to text returned of userResponse
+			if newName is "" then
+				display dialog "Prompt name cannot be empty." with icon caution buttons {"OK"} default button "OK"
+			else if newName is managePromptsLabel then
+				display dialog "The name \"" & managePromptsLabel & "\" is reserved. Please choose a different name." with icon caution buttons {"OK"} default button "OK"
+				set nameDefault to newName
+			else if newName is not selectedName and my findPromptIndex(newName) is not -1 then
+				display dialog "A prompt named \"" & newName & "\" already exists." with icon caution buttons {"OK"} default button "OK"
+				set nameDefault to newName
+			else
+				exit repeat
+			end if
+		end repeat
+
+		-- Template body (edit in TextEdit)
+		repeat
+			set newBody to my editInTextEdit(templateBody of promptRecord, "Edit the prompt template in TextEdit." & return & return & "Use {{Variable Name}} syntax for fill-in-the-blank variables." & return & return & "Example: Summarize {{Topic}} in {{Style}} style.")
+			if newBody is "" then
+				display dialog "Template body cannot be empty." with icon caution buttons {"OK"} default button "OK"
+			else
+				exit repeat
+			end if
+		end repeat
+
+		-- Auto-detect variables from template
+		set detectedVars to my extractVariables(newBody)
+		my updatePromptInConfig(targetIndex, newName, newBody, detectedVars)
+
+		display notification "Updated \"" & newName & "\" in your library." with title notificationTitle sound name notificationSound
+		log "DEBUG -> runEditPrompt: completed"
+		return
+	on error errMsg number errNum
+		if errMsg contains "User canceled" or errNum is equal to -128 then
+			-- Cancel within edit flow: loop back to prompt selector
 		else
-			exit repeat
+			error errMsg number errNum
 		end if
+	end try
 	end repeat
 
-	-- Template body (edit in TextEdit)
-	repeat
-		set newBody to my editInTextEdit(templateBody of promptRecord, "Edit the prompt template in TextEdit." & return & return & "Use {{Variable Name}} syntax for fill-in-the-blank variables." & return & return & "Example: Summarize {{Topic}} in {{Style}} style.")
-		if newBody is "" then
-			display dialog "Template body cannot be empty." with icon caution buttons {"OK"} default button "OK"
-		else
-			exit repeat
-		end if
-	end repeat
-
-	-- Auto-detect variables from template
-	set detectedVars to my extractVariables(newBody)
-	my updatePromptInConfig(targetIndex, newName, newBody, detectedVars)
-
-	display notification "Updated \"" & newName & "\" in your library." with title notificationTitle sound name notificationSound
 	log "DEBUG -> runEditPrompt: done"
 end runEditPrompt
 
@@ -513,8 +529,12 @@ on runDeletePrompt()
 		return
 	end if
 
+	repeat
+	set promptNames to my loadPromptNames()
+	if (count of promptNames) is 0 then exit repeat
+
 	set selectedNames to choose from list promptNames with title notificationTitle with prompt "Select a prompt to delete:" without multiple selections allowed without empty selection allowed
-	if selectedNames is false then error number -128
+	if selectedNames is false then exit repeat
 	set selectedName to item 1 of selectedNames
 
 	set targetIndex to my findPromptIndex(selectedName)
@@ -522,12 +542,23 @@ on runDeletePrompt()
 		error "Prompt not found: " & selectedName
 	end if
 
-	display dialog "Delete \"" & selectedName & "\"?" & return & return & "This will permanently remove the prompt and its template." with title notificationTitle buttons {"Cancel", "Delete"} cancel button "Cancel" default button "Cancel" with icon stop
-	if button returned of the result is not "Delete" then return
+	try
+		display dialog "Delete \"" & selectedName & "\"?" & return & return & "This will permanently remove the prompt and its template." with title notificationTitle buttons {"Cancel", "Delete"} cancel button "Cancel" default button "Cancel" with icon stop
+		-- If we get here, user clicked Delete
 
-	my deletePromptFromConfig(targetIndex)
+		my deletePromptFromConfig(targetIndex)
 
-	display notification "Deleted \"" & selectedName & "\" from your library." with title notificationTitle sound name notificationSound
+		display notification "Deleted \"" & selectedName & "\" from your library." with title notificationTitle sound name notificationSound
+		log "DEBUG -> runDeletePrompt: completed"
+	on error errMsg number errNum
+		if errMsg contains "User canceled" or errNum is equal to -128 then
+			-- Cancel at confirmation: loop back to prompt selector
+		else
+			error errMsg number errNum
+		end if
+	end try
+	end repeat
+
 	log "DEBUG -> runDeletePrompt: done"
 end runDeletePrompt
 
