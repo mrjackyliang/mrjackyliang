@@ -237,6 +237,7 @@ on getApiKey(pcName)
 		display dialog "API key cannot contain quotes, backslashes, or control characters." with icon stop buttons {"OK"} default button "OK"
 		error number -128
 	end if
+	delay 2
 
 	-- Save the key to Keychain
 	my setApiKey(pcName, theApiKey)
@@ -444,6 +445,7 @@ on chooseAndLaunchApp(pcName)
 	if chosenApp is false then
 		error number -128
 	end if
+	delay 2
 
 	set chosenAppName to item 1 of chosenApp
 	log "DEBUG -> chooseAndLaunchApp: user chose " & chosenAppName
@@ -619,6 +621,7 @@ on runAddPc()
 	set pcRecord to pcRecord of promptResult
 	set theApiKey to apiKey of promptResult
 	set pcName to computerName of pcRecord
+	delay 2
 
 	-- Save to Keychain first (a dangling key is safer than a keyless config entry)
 	my setApiKey(pcName, theApiKey)
@@ -795,6 +798,7 @@ on runEditPc()
 	if editCancelled then
 		-- Discard changes, loop back to PC selector
 	else
+	delay 2
 
 	-- Handle Keychain updates before config (a dangling key is safer than a keyless config entry)
 	set newName to computerName of pcRecord
@@ -866,6 +870,7 @@ on runDeletePc()
 	try
 		display dialog "Delete this PC?" & return & return & detailText & return & return & "This will also remove its API key from Keychain." with title notificationTitle buttons {"Cancel", "Delete"} cancel button "Cancel" default button "Cancel" with icon stop
 		-- If we get here, user clicked Delete
+		delay 2
 
 		my deletePcFromConfig(targetName)
 		my deleteApiKey(targetName)

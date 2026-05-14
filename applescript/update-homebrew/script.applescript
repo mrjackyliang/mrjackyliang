@@ -77,12 +77,39 @@ on findSourceForCommand(candidateList, commandName)
 end findSourceForCommand
 
 ------------------------------------------------------------------
+-- Helper: doShell
+--
+-- Wraps "do shell script" so that when a command fails, the
+-- raised AppleScript error contains the command's stderr output
+-- instead of the generic "exited with a non-zero status" message.
+------------------------------------------------------------------
+on doShell(commandText)
+	set errFile to do shell script "mktemp -t doShell"
+	try
+		set stdoutResult to do shell script "/bin/zsh -c " & quoted form of commandText & " 2>" & quoted form of errFile
+	on error errMsg number errNum
+		set stderrText to ""
+		try
+			set stderrText to do shell script "cat " & quoted form of errFile
+		end try
+		do shell script "rm -f " & quoted form of errFile
+		if stderrText is "" then
+			error errMsg number errNum
+		else
+			error stderrText number errNum
+		end if
+	end try
+	do shell script "rm -f " & quoted form of errFile
+	return stdoutResult
+end doShell
+
+------------------------------------------------------------------
 -- Helper: resolveCommandPath
 ------------------------------------------------------------------
 on resolveCommandPath(sourcePath, commandName)
 	log "DEBUG -> resolveCommandPath: " & commandName & " using " & sourcePath
-	set commandText to "source " & quoted form of sourcePath & " >/dev/null 2>&1; command -v " & quoted form of commandName & "; exit 0;"
-	set commandPath to do shell script commandText
+	set zshScript to "source " & quoted form of sourcePath & " >/dev/null 2>&1; command -v " & quoted form of commandName & "; exit 0;"
+	set commandPath to do shell script "/bin/zsh -c " & quoted form of zshScript
 	log "DEBUG -> resolveCommandPath: " & commandName & " -> " & commandPath
 	return commandPath
 end resolveCommandPath
@@ -92,24 +119,24 @@ end resolveCommandPath
 ------------------------------------------------------------------
 on runUpdate(sourcePath, brewPath)
 	log "DEBUG -> runUpdate: start"
-	set brewPrefix to "source " & quoted form of sourcePath & " >/dev/null 2>&1 && " & quoted form of brewPath
+	set brewPrefix to "source " & quoted form of sourcePath & " >/dev/null && " & quoted form of brewPath
 
 	-- Step 1: Update formulae definitions
 	log "DEBUG -> runUpdate: updating formulae definitions"
 	display notification "Updating Homebrew formulae definitions ..." with title notificationTitle
-	do shell script brewPrefix & " update"
+	my doShell(brewPrefix & " update")
 	log "DEBUG -> runUpdate: update completed"
 
 	-- Step 2: Upgrade all outdated formulae and cask apps
 	log "DEBUG -> runUpdate: upgrading outdated packages"
 	display notification "Upgrading outdated packages ..." with title notificationTitle
-	do shell script brewPrefix & " upgrade --greedy"
+	my doShell(brewPrefix & " upgrade --greedy")
 	log "DEBUG -> runUpdate: upgrade completed"
 
 	-- Step 3: Clean up old versions and cache
 	log "DEBUG -> runUpdate: cleaning up old versions"
 	display notification "Cleaning up old versions ..." with title notificationTitle
-	do shell script brewPrefix & " cleanup"
+	my doShell(brewPrefix & " cleanup")
 	log "DEBUG -> runUpdate: cleanup completed"
 
 	-- Done

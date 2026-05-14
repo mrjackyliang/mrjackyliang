@@ -168,6 +168,8 @@ on createProtectedZip(posixChosenPaths, posixZipFilePath, zipPassword, filesOrFo
 		set baseDirectory to my findCommonDirectoryPath(posixChosenPaths)
 		if baseDirectory is "" then
 			error "Error creating protected ZIP file. Unable to determine base directory."
+		else if baseDirectory is "/" then
+			error "Selected folders have no common parent directory. Please select folders that share a common parent."
 		end if
 		log "DEBUG -> baseDirectory: " & baseDirectory
 
@@ -277,6 +279,7 @@ on run argv
 			if zipPassword is not "" then exit repeat
 			display dialog "Password cannot be empty." with icon stop buttons {"OK"} default button "OK"
 		end repeat
+		delay 2
 
 		my createProtectedZip(posixChosenPaths, posixZipFilePath, zipPassword, filesOrFolders)
 

@@ -309,11 +309,12 @@ on run argv
 		if selectedProcessGroupNames is false then
 			error number -128
 		end if
+		delay 2
 
 		set resultMessage to my fixGlitches(selectedProcessGroupNames)
 		display dialog resultMessage with title notificationTitle buttons {"OK"} default button "OK"
 	on error errMsg number errNum
-		if errMsg is "User canceled." or errNum is -128 then
+		if errNum is -128 then
 			return
 		end if
 

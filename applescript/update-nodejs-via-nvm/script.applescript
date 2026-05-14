@@ -80,12 +80,39 @@ on findSourceForCommand(candidateList, commandName)
 end findSourceForCommand
 
 ------------------------------------------------------------------
+-- Helper: doShell
+--
+-- Wraps "do shell script" so that when a command fails, the
+-- raised AppleScript error contains the command's stderr output
+-- instead of the generic "exited with a non-zero status" message.
+------------------------------------------------------------------
+on doShell(commandText)
+	set errFile to do shell script "mktemp -t doShell"
+	try
+		set stdoutResult to do shell script "/bin/zsh -c " & quoted form of commandText & " 2>" & quoted form of errFile
+	on error errMsg number errNum
+		set stderrText to ""
+		try
+			set stderrText to do shell script "cat " & quoted form of errFile
+		end try
+		do shell script "rm -f " & quoted form of errFile
+		if stderrText is "" then
+			error errMsg number errNum
+		else
+			error stderrText number errNum
+		end if
+	end try
+	do shell script "rm -f " & quoted form of errFile
+	return stdoutResult
+end doShell
+
+------------------------------------------------------------------
 -- Helper: resolveCommandPath
 ------------------------------------------------------------------
 on resolveCommandPath(sourcePath, commandName)
 	log "DEBUG -> resolveCommandPath: " & commandName & " using " & sourcePath
-	set commandText to "source " & quoted form of sourcePath & " >/dev/null 2>&1; command -v " & quoted form of commandName & "; exit 0;"
-	set commandPath to do shell script commandText
+	set zshScript to "source " & quoted form of sourcePath & " >/dev/null 2>&1; command -v " & quoted form of commandName & "; exit 0;"
+	set commandPath to do shell script "/bin/zsh -c " & quoted form of zshScript
 	log "DEBUG -> resolveCommandPath: " & commandName & " -> " & commandPath
 	return commandPath
 end resolveCommandPath
@@ -191,10 +218,11 @@ on ensureJqAvailable(sourcePath)
 	end if
 	
 	display dialog "This script requires jq for JSON parsing. Install it now using Homebrew?" buttons {"Cancel", "Install jq"} default button "Install jq" cancel button "Cancel" with icon caution
-	
+	delay 2
+
 	log "DEBUG -> ensureJqAvailable: installing jq via Homebrew"
 	display notification "Installing jq via Homebrew ..." with title notificationTitle
-	do shell script "source " & quoted form of sourcePath & " >/dev/null 2>&1 && " & quoted form of brewPath & " install jq"
+	my doShell("source " & quoted form of sourcePath & " >/dev/null && " & quoted form of brewPath & " install jq")
 	
 	set jqPath to my resolveCommandPath(sourcePath, "jq")
 	if jqPath is "" then
@@ -213,10 +241,10 @@ on fetchCurrentLtsVersions(sourcePath, jqPath)
 	log "DEBUG -> fetchCurrentLtsVersions: fetching schedule from " & scheduleUrl
 	display notification "Fetching Node.js release schedule ..." with title notificationTitle
 	
-	set shellCmd to "source " & quoted form of sourcePath & " >/dev/null 2>&1 && curl -sf --connect-timeout 10 --max-time 30 " & quoted form of scheduleUrl & " | " & quoted form of jqPath & " -r --arg today \"$(date +%Y-%m-%d)\" 'to_entries[] | select(.value.lts | type == \"string\") | select(.value.lts <= $today) | select(.value.end >= $today) | .key | ltrimstr(\"v\")' | sort -n | tr '\\n' ' '"
+	set shellCmd to "source " & quoted form of sourcePath & " >/dev/null && curl -sf --connect-timeout 10 --max-time 30 " & quoted form of scheduleUrl & " | " & quoted form of jqPath & " -r --arg today \"$(date +%Y-%m-%d)\" 'to_entries[] | select(.value.lts | type == \"string\") | select(.value.lts <= $today) | select(.value.end >= $today) | .key | ltrimstr(\"v\")' | sort -n | tr '\\n' ' '"
 	
 	log "DEBUG -> fetchCurrentLtsVersions: running shell command"
-	set ltsOutput to do shell script shellCmd
+	set ltsOutput to my doShell(shellCmd)
 	log "DEBUG -> fetchCurrentLtsVersions: raw output=" & ltsOutput
 	
 	set ltsVersions to my splitWords(ltsOutput)
@@ -244,10 +272,10 @@ end fetchCurrentLtsVersions
 ------------------------------------------------------------------
 on getInstalledVersions(sourcePath, nvmLocation)
 	log "DEBUG -> getInstalledVersions: listing installed versions"
-	set nvmPrefix to "source " & quoted form of sourcePath & " >/dev/null 2>&1 && " & quoted form of nvmLocation
+	set nvmPrefix to "source " & quoted form of sourcePath & " >/dev/null && " & quoted form of nvmLocation
 	-- Filter out "N/A" lines to exclude uninstalled LTS aliases (e.g. lts/argon -> v4.9.1 (-> N/A)).
 	-- Sort numerically by major.minor.patch so versions appear in ascending order.
-	set installedOutput to do shell script nvmPrefix & " ls --no-colors | grep -v 'N/A' | grep -Eo 'v[0-9]+\\.[0-9]+\\.[0-9]+' | sort -u -t. -k1.2,1n -k2,2n -k3,3n | tr '\\n' ' '"
+	set installedOutput to my doShell(nvmPrefix & " ls --no-colors | grep -v 'N/A' | grep -Eo 'v[0-9]+\\.[0-9]+\\.[0-9]+' | sort -u -t. -k1.2,1n -k2,2n -k3,3n | tr '\\n' ' '")
 	log "DEBUG -> getInstalledVersions: raw output=" & installedOutput
 	return my splitWords(installedOutput)
 end getInstalledVersions
@@ -281,7 +309,7 @@ on collectGlobalPackages(sourcePath, nvmLocation, jqPath, versionList)
 	set rawOutput to ""
 	set collectionFailed to false
 	try
-		set rawOutput to do shell script shellCmd
+		set rawOutput to do shell script "/bin/zsh -c " & quoted form of shellCmd
 	on error errMsg
 		log "DEBUG -> collectGlobalPackages: shell error: " & errMsg
 		set collectionFailed to true
@@ -415,7 +443,7 @@ on resolvePackageConflicts(packageRecords)
 			end if
 			
 			-- Brief delay to let the dialog dismiss before heavy work continues
-			delay 0.5
+			delay 2
 			
 			-- Extract version from "5.5.4 (from v22.6.0)"
 			set chosenText to item 1 of userChoice
@@ -436,7 +464,7 @@ end resolvePackageConflicts
 ------------------------------------------------------------------
 on installGlobalPackages(sourcePath, nvmLocation, targetVersion, packages, linkedPackages)
 	log "DEBUG -> installGlobalPackages: version=" & targetVersion & " packages=" & (count of packages) & " linked=" & (count of linkedPackages)
-	set nvmPrefix to "source " & quoted form of sourcePath & " >/dev/null 2>&1 && " & quoted form of nvmLocation
+	set nvmPrefix to "source " & quoted form of sourcePath & " >/dev/null && " & quoted form of nvmLocation
 
 	-- Install regular packages in batch
 	if (count of packages) > 0 then
@@ -454,7 +482,7 @@ on installGlobalPackages(sourcePath, nvmLocation, targetVersion, packages, linke
 		log "DEBUG -> installGlobalPackages: installing " & packageString & " on " & targetVersion
 		display notification "Installing global packages on Node.js " & targetVersion & " ..." with title notificationTitle
 
-		do shell script nvmPrefix & " use " & quoted form of targetVersion & " && npm install -g " & packageString
+		my doShell(nvmPrefix & " use " & quoted form of targetVersion & " && npm install -g " & packageString)
 	end if
 
 	-- Re-link local dev packages
@@ -470,7 +498,7 @@ on installGlobalPackages(sourcePath, nvmLocation, targetVersion, packages, linke
 
 			log "DEBUG -> installGlobalPackages: linking " & pkgName & " from " & pkgPath
 			display notification "Linking " & pkgName & " on Node.js " & targetVersion & " ..." with title notificationTitle
-			do shell script nvmPrefix & " use " & quoted form of targetVersion & " && cd " & quoted form of pkgPath & " && npm link"
+			my doShell(nvmPrefix & " use " & quoted form of targetVersion & " && cd " & quoted form of pkgPath & " && npm link")
 		end repeat
 	end if
 	
@@ -482,7 +510,7 @@ end installGlobalPackages
 ------------------------------------------------------------------
 on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 	log "DEBUG -> runNvmUpdate: start"
-	set nvmPrefix to "source " & quoted form of sourcePath & " >/dev/null 2>&1 && " & quoted form of nvmLocation
+	set nvmPrefix to "source " & quoted form of sourcePath & " >/dev/null && " & quoted form of nvmLocation
 
 	-- Fetch current LTS versions from the official release schedule
 	set ltsVersions to my fetchCurrentLtsVersions(sourcePath, jqPath)
@@ -509,6 +537,7 @@ on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 		if button returned of result is "Remove" then
 			set removeNonLts to true
 		end if
+		delay 2
 	end if
 
 	-- Collect global packages from ALL installed versions (including ones to be removed)
@@ -523,6 +552,7 @@ on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 	if collectionFailed of packageData then
 		display dialog "Warning: Failed to collect some global packages. Package migration may be incomplete." & return & return & "Continue with installation? (Version removal will be skipped to protect packages)" buttons {"Cancel", "Continue"} cancel button "Cancel" default button "Continue" with icon caution
 		set skipRemoval to true
+		delay 2
 	end if
 
 	-- Warn about non-registry packages that cannot be automatically migrated
@@ -536,6 +566,7 @@ on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 		end repeat
 		set nonRegText to my joinList(nonRegNames, return)
 		display dialog "The following packages were installed from non-registry sources and will be skipped during migration:" & return & return & nonRegText & return & return & "You will need to reinstall these manually." buttons {"Cancel", "Continue"} cancel button "Cancel" default button "Continue" with icon caution
+		delay 2
 	end if
 
 	-- Resolve package version conflicts
@@ -548,18 +579,18 @@ on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 	repeat with ltsVersion in ltsVersions
 		log "DEBUG -> runNvmUpdate: installing LTS " & (contents of ltsVersion)
 		display notification "Installing Node.js " & (contents of ltsVersion) & " (LTS) ..." with title notificationTitle
-		do shell script nvmPrefix & " install " & quoted form of (contents of ltsVersion)
+		my doShell(nvmPrefix & " install " & quoted form of (contents of ltsVersion))
 	end repeat
 
 	-- Set highest LTS as default
 	set highestLts to item -1 of ltsVersions
 	log "DEBUG -> runNvmUpdate: setting default to " & highestLts
-	do shell script nvmPrefix & " alias default " & quoted form of highestLts
+	my doShell(nvmPrefix & " alias default " & quoted form of highestLts)
 
 	-- Get the actual installed version for each LTS major
 	set targetVersions to {}
 	repeat with ltsVersion in ltsVersions
-		set fullVer to do shell script nvmPrefix & " version " & quoted form of (contents of ltsVersion)
+		set fullVer to my doShell(nvmPrefix & " version " & quoted form of (contents of ltsVersion))
 		log "DEBUG -> runNvmUpdate: LTS " & (contents of ltsVersion) & " resolved to " & fullVer
 		set end of targetVersions to fullVer
 	end repeat
@@ -575,6 +606,7 @@ on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 	-- Offer to update all global packages to latest
 	if (count of resolvedPkgs) > 0 then
 		display dialog "Would you like to update all global packages to their latest versions?" & return & return & "(Locally linked packages will not be affected)" buttons {"Skip", "Update"} default button "Update"
+		delay 2
 		if button returned of result is "Update" then
 			-- Build a space-separated list of package names (without versions) for targeted update.
 			-- Using "npm update -g <names>" instead of bare "npm update -g" avoids .DS_Store errors.
@@ -591,7 +623,7 @@ on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 			repeat with targetVersion in targetVersions
 				log "DEBUG -> runNvmUpdate: updating packages on " & (contents of targetVersion)
 				display notification "Updating global packages on Node.js " & (contents of targetVersion) & " ..." with title notificationTitle
-				do shell script nvmPrefix & " use " & quoted form of (contents of targetVersion) & " && npm update -g " & pkgNameString
+				my doShell(nvmPrefix & " use " & quoted form of (contents of targetVersion) & " && npm update -g " & pkgNameString)
 			end repeat
 		end if
 	end if
@@ -601,7 +633,7 @@ on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 		repeat with nonLtsVersion in nonLtsVersions
 			log "DEBUG -> runNvmUpdate: uninstalling " & (contents of nonLtsVersion)
 			display notification "Removing Node.js " & (contents of nonLtsVersion) & " ..." with title notificationTitle
-			do shell script nvmPrefix & " uninstall " & quoted form of (contents of nonLtsVersion)
+			my doShell(nvmPrefix & " uninstall " & quoted form of (contents of nonLtsVersion))
 		end repeat
 	end if
 
@@ -624,11 +656,12 @@ on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 		if (count of oldPatchVersions) > 0 then
 			set patchListText to my joinList(oldPatchVersions, ", ")
 			display dialog "These older LTS patch versions can be removed:" & return & return & patchListText & return & return & "The latest patch for each LTS line has already been installed." buttons {"Keep All", "Remove"} default button "Remove"
+			delay 2
 			if button returned of result is "Remove" then
 				repeat with oldPatch in oldPatchVersions
 					log "DEBUG -> runNvmUpdate: removing old patch version " & (contents of oldPatch)
 					display notification "Removing old Node.js " & (contents of oldPatch) & " ..." with title notificationTitle
-					do shell script nvmPrefix & " uninstall " & quoted form of (contents of oldPatch)
+					my doShell(nvmPrefix & " uninstall " & quoted form of (contents of oldPatch))
 				end repeat
 			end if
 		end if

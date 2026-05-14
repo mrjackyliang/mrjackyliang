@@ -261,7 +261,6 @@ on editInTextEdit(initialContent, instructionText)
 	log "DEBUG -> editInTextEdit: tempPath=" & tempPath
 
 	my writeTextFile(tempPath, initialContent)
-	do shell script "chmod 644 " & quoted form of tempPath
 
 	do shell script "open -a TextEdit " & quoted form of tempPath
 
@@ -270,6 +269,7 @@ on editInTextEdit(initialContent, instructionText)
 		do shell script "rm -f " & quoted form of tempPath
 		error number -128
 	end if
+	delay 2
 
 	-- Read back what the user saved to disk
 	set editedContent to do shell script "cat " & quoted form of tempPath
@@ -346,6 +346,18 @@ on trimString(theString)
 	return trimmed
 end trimString
 
+------------------------------------------------------------------
+-- Helper: matchesPattern
+------------------------------------------------------------------
+on matchesPattern(theText, thePattern)
+	try
+		do shell script "printf '%s' " & quoted form of theText & " | grep -qE " & quoted form of thePattern
+		return true
+	on error
+		return false
+	end try
+end matchesPattern
+
 
 ------------------------------------------------------------------
 -- Core: runUsePrompt
@@ -412,6 +424,9 @@ on runAddPrompt()
 		set newName to text returned of userResponse
 		if newName is "" then
 			display dialog "Prompt name cannot be empty." with icon caution buttons {"OK"} default button "OK"
+		else if not my matchesPattern(newName, "^[^\"\\\\[:cntrl:]]+$") then
+			display dialog "Prompt name cannot contain quotes, backslashes, or control characters." with icon caution buttons {"OK"} default button "OK"
+			set nameDefault to newName
 		else if newName is managePromptsLabel then
 			display dialog "The name \"" & managePromptsLabel & "\" is reserved. Please choose a different name." with icon caution buttons {"OK"} default button "OK"
 			set nameDefault to newName
@@ -477,6 +492,9 @@ on runEditPrompt()
 			set newName to text returned of userResponse
 			if newName is "" then
 				display dialog "Prompt name cannot be empty." with icon caution buttons {"OK"} default button "OK"
+			else if not my matchesPattern(newName, "^[^\"\\\\[:cntrl:]]+$") then
+				display dialog "Prompt name cannot contain quotes, backslashes, or control characters." with icon caution buttons {"OK"} default button "OK"
+				set nameDefault to newName
 			else if newName is managePromptsLabel then
 				display dialog "The name \"" & managePromptsLabel & "\" is reserved. Please choose a different name." with icon caution buttons {"OK"} default button "OK"
 				set nameDefault to newName
@@ -545,6 +563,7 @@ on runDeletePrompt()
 	try
 		display dialog "Delete \"" & selectedName & "\"?" & return & return & "This will permanently remove the prompt and its template." with title notificationTitle buttons {"Cancel", "Delete"} cancel button "Cancel" default button "Cancel" with icon stop
 		-- If we get here, user clicked Delete
+		delay 2
 
 		my deletePromptFromConfig(targetIndex)
 
