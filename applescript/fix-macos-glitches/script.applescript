@@ -13,12 +13,134 @@
 -- * Restarting iPhone sync processes also restarts Finder to refresh the device sidebar
 -- ======================================================================================
 
+use framework "Foundation"
+use framework "AppKit"
+use scripting additions
+
 ------------------------------------------------------------------
 -- Properties
 ------------------------------------------------------------------
 property processGroups : {{"iPhone Sync Processes", {"AMPDeviceDiscoveryAgent", "AMPLibraryAgent", "MDCrashReportTool", "MobileDeviceUpdater"}}, {"macOS UI Processes", {"ControlCenter", "Dock", "NotificationCenter", "SystemUIServer"}}}
 property dependentAppBundleIDs : {"com.surteesstudios.Bartender"}
 property notificationTitle : "Fix macOS Glitches"
+
+------------------------------------------------------------------
+-- Helpers: responsive shell execution
+------------------------------------------------------------------
+on yieldForUi(waitSeconds)
+	set deadlineDate to current application's NSDate's dateWithTimeIntervalSinceNow:waitSeconds
+	repeat while (deadlineDate's timeIntervalSinceNow() as real) > 0
+		current application's NSRunLoop's currentRunLoop()'s runUntilDate:(current application's NSDate's dateWithTimeIntervalSinceNow:0.05)
+	end repeat
+end yieldForUi
+
+on trimTrailingLineEndings(theText)
+	set trimmedText to theText as text
+	repeat while trimmedText ends with linefeed or trimmedText ends with return
+		if (count of trimmedText) is 1 then
+			set trimmedText to ""
+		else
+			set trimmedText to text 1 thru -2 of trimmedText
+		end if
+	end repeat
+	return trimmedText
+end trimTrailingLineEndings
+
+on readUtf8File(filePath)
+	set fileData to current application's NSData's dataWithContentsOfFile:filePath
+	if fileData is missing value then return ""
+	set fileText to current application's NSString's alloc()'s initWithData:fileData encoding:(current application's NSUTF8StringEncoding)
+	if fileText is missing value then error "Shell command returned output that is not valid UTF-8."
+	return fileText as text
+end readUtf8File
+
+on removeTemporaryFile(filePath)
+	if filePath is missing value then return
+	current application's NSFileManager's defaultManager()'s removeItemAtPath:filePath |error|:(missing value)
+end removeTemporaryFile
+
+on doShellResponsive(commandText)
+	set uniqueId to current application's NSUUID's UUID()'s UUIDString() as text
+	set tempDirectory to current application's NSTemporaryDirectory() as text
+	set stdoutPath to tempDirectory & "applescript-shell-" & uniqueId & ".stdout"
+	set stderrPath to tempDirectory & "applescript-shell-" & uniqueId & ".stderr"
+	set stdoutHandle to missing value
+	set stderrHandle to missing value
+	set shellTask to missing value
+
+	try
+		set fileManager to current application's NSFileManager's defaultManager()
+		set secureFileAttributes to current application's NSDictionary's dictionaryWithObject:384 forKey:(current application's NSFilePosixPermissions)
+		set createdStdout to fileManager's createFileAtPath:stdoutPath |contents|:(missing value) attributes:secureFileAttributes
+		set createdStderr to fileManager's createFileAtPath:stderrPath |contents|:(missing value) attributes:secureFileAttributes
+		if not (createdStdout as boolean) or not (createdStderr as boolean) then error "Could not create temporary shell output files."
+		set stdoutHandle to current application's NSFileHandle's fileHandleForWritingAtPath:stdoutPath
+		set stderrHandle to current application's NSFileHandle's fileHandleForWritingAtPath:stderrPath
+		if stdoutHandle is missing value or stderrHandle is missing value then error "Could not open temporary shell output files."
+
+		set shellTask to current application's NSTask's alloc()'s init()
+		shellTask's setLaunchPath:"/bin/zsh"
+		shellTask's setArguments:{"-c", commandText}
+		shellTask's setStandardInput:(current application's NSFileHandle's fileHandleWithNullDevice())
+		shellTask's setStandardOutput:stdoutHandle
+		shellTask's setStandardError:stderrHandle
+		shellTask's |launch|()
+
+		repeat while (shellTask's isRunning() as boolean)
+			current application's NSRunLoop's currentRunLoop()'s runUntilDate:(current application's NSDate's dateWithTimeIntervalSinceNow:0.05)
+		end repeat
+		shellTask's waitUntilExit()
+		stdoutHandle's closeFile()
+		stderrHandle's closeFile()
+		set stdoutHandle to missing value
+		set stderrHandle to missing value
+
+		set stdoutText to my trimTrailingLineEndings(my readUtf8File(stdoutPath))
+		set stderrText to my trimTrailingLineEndings(my readUtf8File(stderrPath))
+		set exitStatus to shellTask's terminationStatus() as integer
+		my removeTemporaryFile(stdoutPath)
+		my removeTemporaryFile(stderrPath)
+
+		if exitStatus is not 0 then
+			if stderrText is not "" then error stderrText number exitStatus
+			if stdoutText is not "" then error stdoutText number exitStatus
+			error "Shell command failed with exit status " & exitStatus & "." number exitStatus
+		end if
+
+		return stdoutText
+	on error errMsg number errNum
+		try
+			if shellTask is not missing value and (shellTask's isRunning() as boolean) then
+				shellTask's terminate()
+				set terminationDeadline to current application's NSDate's dateWithTimeIntervalSinceNow:1
+				repeat while (shellTask's isRunning() as boolean) and ((terminationDeadline's timeIntervalSinceNow()) as real) > 0
+					current application's NSRunLoop's currentRunLoop()'s runUntilDate:(current application's NSDate's dateWithTimeIntervalSinceNow:0.05)
+				end repeat
+				if shellTask's isRunning() as boolean then
+					shellTask's interrupt()
+					set interruptDeadline to current application's NSDate's dateWithTimeIntervalSinceNow:1
+					repeat while (shellTask's isRunning() as boolean) and ((interruptDeadline's timeIntervalSinceNow()) as real) > 0
+						current application's NSRunLoop's currentRunLoop()'s runUntilDate:(current application's NSDate's dateWithTimeIntervalSinceNow:0.05)
+					end repeat
+					if shellTask's isRunning() as boolean then
+						set killTask to current application's NSTask's launchedTaskWithLaunchPath:"/bin/kill" arguments:{"-KILL", (shellTask's processIdentifier() as text)}
+						killTask's waitUntilExit()
+						shellTask's waitUntilExit()
+					end if
+				end if
+			end if
+		end try
+		try
+			if stdoutHandle is not missing value then stdoutHandle's closeFile()
+		end try
+		try
+			if stderrHandle is not missing value then stderrHandle's closeFile()
+		end try
+		my removeTemporaryFile(stdoutPath)
+		my removeTemporaryFile(stderrPath)
+		error errMsg number errNum
+	end try
+end doShellResponsive
 
 ------------------------------------------------------------------
 -- Helper: joinList
@@ -178,7 +300,12 @@ on fixGlitches(selectedProcessGroupNames)
 
 				try
 					log "DEBUG -> Quitting dependent app: " & idText
-					tell application id idText to quit
+					set runningApps to current application's NSRunningApplication's runningApplicationsWithBundleIdentifier:idText
+					set requestedTermination to true
+					repeat with runningApp in runningApps
+						if not (runningApp's terminate() as boolean) then set requestedTermination to false
+					end repeat
+					if not requestedTermination then log "DEBUG -> Dependent app declined termination request: " & idText
 				on error errorMessage number errorNumber
 					log "DEBUG -> Failed to quit dependent app " & idText & " - " & errorMessage
 				end try
@@ -189,7 +316,7 @@ on fixGlitches(selectedProcessGroupNames)
 
 		log "DEBUG -> dependentBundleIDsToRelaunch: " & my joinList(dependentBundleIDsToRelaunch, ", ")
 
-		delay 1
+		my yieldForUi(1)
 	else
 		log "DEBUG -> SystemUIServer not selected. No dependent-app pre-quit needed."
 	end if
@@ -199,13 +326,13 @@ on fixGlitches(selectedProcessGroupNames)
 		set processNameText to (contents of processName)
 		log "DEBUG -> Checking process: " & processNameText
 
-		set isRunningInteger to (do shell script "pgrep -x " & quoted form of processNameText & " >/dev/null; echo $?") as integer
+		set isRunningInteger to (my doShellResponsive("pgrep -x " & quoted form of processNameText & " >/dev/null; echo $?")) as integer
 		log "DEBUG -> pgrep exit code for " & processNameText & ": " & isRunningInteger
 
 		if isRunningInteger is 0 then
 			try
 				log "DEBUG -> killall starting: " & processNameText
-				do shell script "killall " & quoted form of processNameText
+				my doShellResponsive("killall " & quoted form of processNameText)
 				set end of terminatedProcessNames to processNameText
 				log "DEBUG -> Terminated process: " & processNameText
 			on error errorMessage number errorNumber
@@ -222,10 +349,10 @@ on fixGlitches(selectedProcessGroupNames)
 	repeat with processName in terminatedProcessNames
 		set processNameText to (contents of processName)
 		try
-			set launchdLabel to do shell script "launchctl list | grep -F " & quoted form of processNameText & " | awk '{print $3}' | head -1"
+			set launchdLabel to my doShellResponsive("launchctl list | grep -F " & quoted form of processNameText & " | awk '{print $3}' | head -1")
 			if launchdLabel is not "" then
 				log "DEBUG -> Restarting via launchctl: " & processNameText & " (" & launchdLabel & ")"
-				do shell script "launchctl kickstart gui/$(id -u)/" & quoted form of launchdLabel
+				my doShellResponsive("launchctl kickstart gui/$(id -u)/" & quoted form of launchdLabel)
 				log "DEBUG -> Restarted: " & processNameText
 			else
 				log "DEBUG -> No launchctl label found for " & processNameText & "; relying on auto-respawn"
@@ -246,9 +373,9 @@ on fixGlitches(selectedProcessGroupNames)
 	end repeat
 	if needsFinderRestart then
 		log "DEBUG -> Restarting Finder to refresh device sidebar"
-		delay 1
+		my yieldForUi(1)
 		try
-			do shell script "killall Finder"
+			my doShellResponsive("killall Finder")
 		end try
 	end if
 
@@ -258,18 +385,18 @@ on fixGlitches(selectedProcessGroupNames)
 
 		repeat 20 times
 			try
-				do shell script "pgrep -x " & quoted form of "SystemUIServer"
+				my doShellResponsive("pgrep -x " & quoted form of "SystemUIServer")
 				exit repeat
 			end try
-			delay 0.5
+			my yieldForUi(0.5)
 		end repeat
-		delay 2 -- stabilization delay for SystemUIServer to fully initialize
+		my yieldForUi(2) -- stabilization delay for SystemUIServer to fully initialize
 
 		repeat with bundleID in dependentBundleIDsToRelaunch
 			set idText to (contents of bundleID)
 			try
 				log "DEBUG -> Relaunching dependent app: " & idText
-				do shell script "open -b " & quoted form of idText
+				my doShellResponsive("open -b " & quoted form of idText)
 			on error errorMessage number errorNumber
 				log "DEBUG -> Failed to relaunch dependent app " & idText & " - " & errorMessage
 			end try
@@ -309,7 +436,7 @@ on run argv
 		if selectedProcessGroupNames is false then
 			error number -128
 		end if
-		delay 2
+		my yieldForUi(0.2)
 
 		set resultMessage to my fixGlitches(selectedProcessGroupNames)
 		display dialog resultMessage with title notificationTitle buttons {"OK"} default button "OK"

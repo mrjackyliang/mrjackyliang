@@ -21,6 +21,9 @@
 -- * API keys appear briefly in process arguments during Keychain operations (inherent to the macOS "security" CLI)
 -- =================================================================================================================
 
+use framework "Foundation"
+use scripting additions
+
 ------------------------------------------------------------------
 -- Properties
 ------------------------------------------------------------------
@@ -28,6 +31,133 @@ property notificationTitle : "Wake on LAN via pfSense Actions"
 property notificationSound : "Blow"
 property candidateApps : {{"Moonlight", "com.moonlight-stream.Moonlight"}, {"Parsec", "tv.parsec.www"}, {"Windows App", "com.microsoft.rdc.macos"}}
 property managePcsLabel : "Manage PCs..."
+
+------------------------------------------------------------------
+-- Helper: yieldForUi
+------------------------------------------------------------------
+on yieldForUi(durationSeconds)
+	current application's NSRunLoop's currentRunLoop()'s runUntilDate:(current application's NSDate's dateWithTimeIntervalSinceNow:durationSeconds)
+end yieldForUi
+
+------------------------------------------------------------------
+-- Helper: trimTrailingLineEndings
+------------------------------------------------------------------
+on trimTrailingLineEndings(theText)
+	set trimmedText to theText as text
+	repeat while trimmedText ends with linefeed or trimmedText ends with return
+		if (count of trimmedText) is 1 then
+			set trimmedText to ""
+		else
+			set trimmedText to text 1 thru -2 of trimmedText
+		end if
+	end repeat
+	return trimmedText
+end trimTrailingLineEndings
+
+------------------------------------------------------------------
+-- Helper: readUtf8File
+------------------------------------------------------------------
+on readUtf8File(filePath)
+	set fileData to current application's NSData's dataWithContentsOfFile:filePath
+	if fileData is missing value then return ""
+	set fileText to current application's NSString's alloc()'s initWithData:fileData encoding:(current application's NSUTF8StringEncoding)
+	if fileText is missing value then error "Shell command returned output that is not valid UTF-8."
+	return fileText as text
+end readUtf8File
+
+------------------------------------------------------------------
+-- Helper: removeTemporaryFile
+------------------------------------------------------------------
+on removeTemporaryFile(filePath)
+	if filePath is missing value then return
+	current application's NSFileManager's defaultManager()'s removeItemAtPath:filePath |error|:(missing value)
+end removeTemporaryFile
+
+------------------------------------------------------------------
+-- Helper: doShellResponsive
+------------------------------------------------------------------
+on doShellResponsive(commandText)
+	set uniqueId to current application's NSUUID's UUID()'s UUIDString() as text
+	set tempDirectory to current application's NSTemporaryDirectory() as text
+	set stdoutPath to tempDirectory & "applescript-shell-" & uniqueId & ".stdout"
+	set stderrPath to tempDirectory & "applescript-shell-" & uniqueId & ".stderr"
+	set stdoutHandle to missing value
+	set stderrHandle to missing value
+	set shellTask to missing value
+
+	try
+		set fileManager to current application's NSFileManager's defaultManager()
+		set secureFileAttributes to current application's NSDictionary's dictionaryWithObject:384 forKey:(current application's NSFilePosixPermissions)
+		set createdStdout to fileManager's createFileAtPath:stdoutPath |contents|:(missing value) attributes:secureFileAttributes
+		set createdStderr to fileManager's createFileAtPath:stderrPath |contents|:(missing value) attributes:secureFileAttributes
+		if not (createdStdout as boolean) or not (createdStderr as boolean) then error "Could not create temporary shell output files."
+		set stdoutHandle to current application's NSFileHandle's fileHandleForWritingAtPath:stdoutPath
+		set stderrHandle to current application's NSFileHandle's fileHandleForWritingAtPath:stderrPath
+		if stdoutHandle is missing value or stderrHandle is missing value then error "Could not open temporary shell output files."
+
+		set shellTask to current application's NSTask's alloc()'s init()
+		shellTask's setLaunchPath:"/bin/zsh"
+		shellTask's setArguments:{"-c", commandText}
+		shellTask's setStandardInput:(current application's NSFileHandle's fileHandleWithNullDevice())
+		shellTask's setStandardOutput:stdoutHandle
+		shellTask's setStandardError:stderrHandle
+		shellTask's |launch|()
+
+		repeat while (shellTask's isRunning() as boolean)
+			current application's NSRunLoop's currentRunLoop()'s runUntilDate:(current application's NSDate's dateWithTimeIntervalSinceNow:0.05)
+		end repeat
+		shellTask's waitUntilExit()
+		stdoutHandle's closeFile()
+		stderrHandle's closeFile()
+		set stdoutHandle to missing value
+		set stderrHandle to missing value
+
+		set stdoutText to my trimTrailingLineEndings(my readUtf8File(stdoutPath))
+		set stderrText to my trimTrailingLineEndings(my readUtf8File(stderrPath))
+		set exitStatus to shellTask's terminationStatus() as integer
+		my removeTemporaryFile(stdoutPath)
+		my removeTemporaryFile(stderrPath)
+
+		if exitStatus is not 0 then
+			if stderrText is not "" then error stderrText number exitStatus
+			if stdoutText is not "" then error stdoutText number exitStatus
+			error "Shell command failed with exit status " & exitStatus & "." number exitStatus
+		end if
+
+		return stdoutText
+	on error errMsg number errNum
+		try
+			if shellTask is not missing value and (shellTask's isRunning() as boolean) then
+				shellTask's terminate()
+				set terminationDeadline to current application's NSDate's dateWithTimeIntervalSinceNow:1
+				repeat while (shellTask's isRunning() as boolean) and ((terminationDeadline's timeIntervalSinceNow()) as real) > 0
+					current application's NSRunLoop's currentRunLoop()'s runUntilDate:(current application's NSDate's dateWithTimeIntervalSinceNow:0.05)
+				end repeat
+				if shellTask's isRunning() as boolean then
+					shellTask's interrupt()
+					set interruptDeadline to current application's NSDate's dateWithTimeIntervalSinceNow:1
+					repeat while (shellTask's isRunning() as boolean) and ((interruptDeadline's timeIntervalSinceNow()) as real) > 0
+						current application's NSRunLoop's currentRunLoop()'s runUntilDate:(current application's NSDate's dateWithTimeIntervalSinceNow:0.05)
+					end repeat
+					if shellTask's isRunning() as boolean then
+						set killTask to current application's NSTask's launchedTaskWithLaunchPath:"/bin/kill" arguments:{"-KILL", (shellTask's processIdentifier() as text)}
+						killTask's waitUntilExit()
+						shellTask's waitUntilExit()
+					end if
+				end if
+			end if
+		end try
+		try
+			if stdoutHandle is not missing value then stdoutHandle's closeFile()
+		end try
+		try
+			if stderrHandle is not missing value then stderrHandle's closeFile()
+		end try
+		my removeTemporaryFile(stdoutPath)
+		my removeTemporaryFile(stderrPath)
+		error errMsg number errNum
+	end try
+end doShellResponsive
 
 ------------------------------------------------------------------
 -- Helper: getConfigPath
@@ -218,7 +348,7 @@ on getApiKey(pcName)
 
 	-- Try to read the key from Keychain
 	try
-		set theApiKey to do shell script "security find-generic-password -s " & quoted form of keychainService & " -a " & quoted form of pcName & " -w"
+		set theApiKey to my doShellResponsive("security find-generic-password -s " & quoted form of keychainService & " -a " & quoted form of pcName & " -w")
 		log "DEBUG -> getApiKey: found key in Keychain"
 		return theApiKey
 	on error
@@ -226,7 +356,8 @@ on getApiKey(pcName)
 	end try
 
 	-- Prompt the user to enter the key
-	set userResponse to display dialog "Enter the pfSense Actions API key for " & pcName & ":" & return & return & "The key will be saved to your macOS Keychain." default answer "" with title notificationTitle buttons {"Cancel", "Save to Keychain"} default button "Save to Keychain" with hidden answer
+	set userResponse to display dialog "Enter the pfSense Actions API key for " & pcName & ":" & return & return & "The key will be saved to your macOS Keychain." default answer "" with title notificationTitle buttons {"Cancel", "Save to Keychain"} cancel button "Cancel" default button "Save to Keychain" with hidden answer
+	if button returned of userResponse is not "Save to Keychain" then error number -128
 	set theApiKey to text returned of userResponse
 
 	if theApiKey is "" then
@@ -237,7 +368,7 @@ on getApiKey(pcName)
 		display dialog "API key cannot contain quotes, backslashes, or control characters." with icon stop buttons {"OK"} default button "OK"
 		error number -128
 	end if
-	delay 2
+	my yieldForUi(0.2)
 
 	-- Save the key to Keychain
 	my setApiKey(pcName, theApiKey)
@@ -252,7 +383,7 @@ on setApiKey(pcName, theKey)
 	set keychainService to "Wake on LAN via pfSense Actions"
 	log "DEBUG -> setApiKey: saving key to Keychain for " & pcName
 
-	do shell script "security add-generic-password -U -s " & quoted form of keychainService & " -a " & quoted form of pcName & " -w " & quoted form of theKey
+	my doShellResponsive("security add-generic-password -U -s " & quoted form of keychainService & " -a " & quoted form of pcName & " -w " & quoted form of theKey)
 
 	log "DEBUG -> setApiKey: key saved successfully"
 end setApiKey
@@ -265,7 +396,7 @@ on deleteApiKey(pcName)
 	log "DEBUG -> deleteApiKey: deleting key from Keychain for " & pcName
 
 	try
-		do shell script "security delete-generic-password -s " & quoted form of keychainService & " -a " & quoted form of pcName
+		my doShellResponsive("security delete-generic-password -s " & quoted form of keychainService & " -a " & quoted form of pcName)
 		log "DEBUG -> deleteApiKey: key deleted"
 	on error
 		log "DEBUG -> deleteApiKey: key not found (already removed)"
@@ -311,6 +442,37 @@ on validatePcRecord(pcRecord)
 end validatePcRecord
 
 ------------------------------------------------------------------
+-- Helper: applicationPathForBundleId
+------------------------------------------------------------------
+on applicationPathForBundleId(bundleId)
+	set applicationDirectories to current application's NSSearchPathForDirectoriesInDomains(current application's NSApplicationDirectory, current application's NSAllDomainsMask, true)
+	set fileManager to current application's NSFileManager's defaultManager()
+
+	repeat with applicationDirectory in applicationDirectories
+		set directoryUrl to current application's NSURL's fileURLWithPath:applicationDirectory
+		set appEnumerator to fileManager's enumeratorAtURL:directoryUrl includingPropertiesForKeys:{} options:6 errorHandler:(missing value)
+
+		if appEnumerator is not missing value then
+			repeat
+				set appUrl to appEnumerator's nextObject()
+				if appUrl is missing value then exit repeat
+				if (appUrl's pathExtension() as text) is "app" then
+					set appBundle to current application's NSBundle's bundleWithURL:appUrl
+					if appBundle is not missing value then
+						set discoveredBundleId to appBundle's bundleIdentifier()
+						if discoveredBundleId is not missing value and (discoveredBundleId as text) is bundleId then
+							return appUrl's |path|() as text
+						end if
+					end if
+				end if
+			end repeat
+		end if
+	end repeat
+
+	return ""
+end applicationPathForBundleId
+
+------------------------------------------------------------------
 -- Helper: getInstalledApps
 ------------------------------------------------------------------
 on getInstalledApps(candidates)
@@ -323,10 +485,11 @@ on getInstalledApps(candidates)
 		set appBundleID to item 2 of pair
 
 		try
-			tell application "Finder" to get application file id appBundleID
-			log "DEBUG -> getInstalledApps: found " & appName
-			set end of appNames to appName
-			set end of appBundleIDs to appBundleID
+			if my applicationPathForBundleId(appBundleID) is not "" then
+				log "DEBUG -> getInstalledApps: found " & appName
+				set end of appNames to appName
+				set end of appBundleIDs to appBundleID
+			end if
 		end try
 	end repeat
 
@@ -356,7 +519,7 @@ on authenticatedPost(endpoint, requestBody, theApiKey, theBaseUrl, maxTime)
 		end try
 		close access authFile
 
-		set curlResult to do shell script "curl --connect-timeout 10 --max-time " & maxTime & " --config " & quoted form of authConfigPath & " -s -w '\\n%{http_code}' -X POST " & quoted form of (theBaseUrl & endpoint) & " -H 'Content-Type: application/json' -d " & quoted form of requestBody
+		set curlResult to my doShellResponsive("curl --connect-timeout 10 --max-time " & maxTime & " --config " & quoted form of authConfigPath & " -s -w '\\n%{http_code}' -X POST " & quoted form of (theBaseUrl & endpoint) & " -H 'Content-Type: application/json' -d " & quoted form of requestBody)
 		do shell script "rm -f " & quoted form of authConfigPath
 	on error errMsg number errNum
 		do shell script "rm -f " & quoted form of authConfigPath
@@ -445,7 +608,7 @@ on chooseAndLaunchApp(pcName)
 	if chosenApp is false then
 		error number -128
 	end if
-	delay 2
+	my yieldForUi(0.2)
 
 	set chosenAppName to item 1 of chosenApp
 	log "DEBUG -> chooseAndLaunchApp: user chose " & chosenAppName
@@ -460,7 +623,7 @@ on chooseAndLaunchApp(pcName)
 	end repeat
 
 	log "DEBUG -> chooseAndLaunchApp: launching " & chosenAppName & " (" & chosenBundleID & ")"
-	tell application id chosenBundleID to activate
+	my doShellResponsive("open -b " & quoted form of chosenBundleID)
 
 	return chosenAppName
 end chooseAndLaunchApp
@@ -621,7 +784,7 @@ on runAddPc()
 	set pcRecord to pcRecord of promptResult
 	set theApiKey to apiKey of promptResult
 	set pcName to computerName of pcRecord
-	delay 2
+	my yieldForUi(0.2)
 
 	-- Save to Keychain first (a dangling key is safer than a keyless config entry)
 	my setApiKey(pcName, theApiKey)
@@ -798,7 +961,7 @@ on runEditPc()
 	if editCancelled then
 		-- Discard changes, loop back to PC selector
 	else
-	delay 2
+	my yieldForUi(0.2)
 
 	-- Handle Keychain updates before config (a dangling key is safer than a keyless config entry)
 	set newName to computerName of pcRecord
@@ -812,7 +975,7 @@ on runEditPc()
 			log "DEBUG -> runEditPc: name changed; migrating key from " & originalName & " to " & newName
 			try
 				set keychainService to "Wake on LAN via pfSense Actions"
-				set existingKey to do shell script "security find-generic-password -s " & quoted form of keychainService & " -a " & quoted form of originalName & " -w"
+				set existingKey to my doShellResponsive("security find-generic-password -s " & quoted form of keychainService & " -a " & quoted form of originalName & " -w")
 				my setApiKey(newName, existingKey)
 			on error
 				log "DEBUG -> runEditPc: no existing key to migrate"
@@ -870,7 +1033,7 @@ on runDeletePc()
 	try
 		display dialog "Delete this PC?" & return & return & detailText & return & return & "This will also remove its API key from Keychain." with title notificationTitle buttons {"Cancel", "Delete"} cancel button "Cancel" default button "Cancel" with icon stop
 		-- If we get here, user clicked Delete
-		delay 2
+		my yieldForUi(0.2)
 
 		my deletePcFromConfig(targetName)
 		my deleteApiKey(targetName)
@@ -952,6 +1115,7 @@ on runMain()
 				exit repeat
 			end if
 			set selectedItem to item 1 of chosenItem
+			my yieldForUi(0.2)
 
 			if selectedItem is managePcsLabel then
 				my runManagePcs()

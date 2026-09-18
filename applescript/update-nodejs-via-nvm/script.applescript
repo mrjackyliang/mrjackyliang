@@ -1,3 +1,6 @@
+use framework "Foundation"
+use scripting additions
+
 -- =================================================================================================================
 -- Update Node.js via NVM
 --
@@ -11,6 +14,7 @@
 --
 -- Good to know:
 -- * Removes non-LTS Node.js versions, which could break projects pinned to those versions
+-- * Automatically upgrades registry-installed global packages on each current LTS Node.js version
 --
 -- Accepted Risks:
 -- * Fetches remote JSON from GitHub and trusts it to determine which versions to install
@@ -80,30 +84,134 @@ on findSourceForCommand(candidateList, commandName)
 end findSourceForCommand
 
 ------------------------------------------------------------------
+-- Helper: trimTrailingLineEndings
+------------------------------------------------------------------
+on trimTrailingLineEndings(theText)
+	set trimmedText to theText as text
+	repeat while trimmedText ends with linefeed or trimmedText ends with return
+		if (count of trimmedText) is 1 then
+			set trimmedText to ""
+		else
+			set trimmedText to text 1 thru -2 of trimmedText
+		end if
+	end repeat
+	return trimmedText
+end trimTrailingLineEndings
+
+------------------------------------------------------------------
+-- Helper: readUtf8File
+------------------------------------------------------------------
+on readUtf8File(filePath)
+	set fileData to current application's NSData's dataWithContentsOfFile:filePath
+	if fileData is missing value then return ""
+	set fileText to current application's NSString's alloc()'s initWithData:fileData encoding:(current application's NSUTF8StringEncoding)
+	if fileText is missing value then error "Shell command returned output that is not valid UTF-8."
+	return fileText as text
+end readUtf8File
+
+------------------------------------------------------------------
+-- Helper: removeTemporaryFile
+------------------------------------------------------------------
+on removeTemporaryFile(filePath)
+	if filePath is missing value then return
+	current application's NSFileManager's defaultManager()'s removeItemAtPath:filePath |error|:(missing value)
+end removeTemporaryFile
+
+------------------------------------------------------------------
+-- Helper: yieldForUi
+------------------------------------------------------------------
+on yieldForUi(secondsValue)
+	current application's NSRunLoop's currentRunLoop()'s runUntilDate:(current application's NSDate's dateWithTimeIntervalSinceNow:secondsValue)
+end yieldForUi
+
+------------------------------------------------------------------
 -- Helper: doShell
 --
--- Wraps "do shell script" so that when a command fails, the
--- raised AppleScript error contains the command's stderr output
--- instead of the generic "exited with a non-zero status" message.
+-- Runs the shell command while pumping the UI run loop. Returns
+-- stdout on success and raises stderr with the shell exit status
+-- when the command fails.
 ------------------------------------------------------------------
 on doShell(commandText)
-	set errFile to do shell script "mktemp -t doShell"
+	set uniqueId to current application's NSUUID's UUID()'s UUIDString() as text
+	set tempDirectory to current application's NSTemporaryDirectory() as text
+	set stdoutPath to tempDirectory & "applescript-shell-" & uniqueId & ".stdout"
+	set stderrPath to tempDirectory & "applescript-shell-" & uniqueId & ".stderr"
+	set stdoutHandle to missing value
+	set stderrHandle to missing value
+	set shellTask to missing value
+
 	try
-		set stdoutResult to do shell script "/bin/zsh -c " & quoted form of commandText & " 2>" & quoted form of errFile
-	on error errMsg number errNum
-		set stderrText to ""
-		try
-			set stderrText to do shell script "cat " & quoted form of errFile
-		end try
-		do shell script "rm -f " & quoted form of errFile
-		if stderrText is "" then
-			error errMsg number errNum
-		else
-			error stderrText number errNum
+		set fileManager to current application's NSFileManager's defaultManager()
+		set secureFileAttributes to current application's NSDictionary's dictionaryWithObject:384 forKey:(current application's NSFilePosixPermissions)
+		set createdStdout to fileManager's createFileAtPath:stdoutPath |contents|:(missing value) attributes:secureFileAttributes
+		set createdStderr to fileManager's createFileAtPath:stderrPath |contents|:(missing value) attributes:secureFileAttributes
+		if not (createdStdout as boolean) or not (createdStderr as boolean) then error "Could not create temporary shell output files."
+		set stdoutHandle to current application's NSFileHandle's fileHandleForWritingAtPath:stdoutPath
+		set stderrHandle to current application's NSFileHandle's fileHandleForWritingAtPath:stderrPath
+		if stdoutHandle is missing value or stderrHandle is missing value then error "Could not open temporary shell output files."
+
+		set shellTask to current application's NSTask's alloc()'s init()
+		shellTask's setLaunchPath:"/bin/zsh"
+		shellTask's setArguments:{"-c", commandText}
+		shellTask's setStandardInput:(current application's NSFileHandle's fileHandleWithNullDevice())
+		shellTask's setStandardOutput:stdoutHandle
+		shellTask's setStandardError:stderrHandle
+		shellTask's |launch|()
+
+		repeat while (shellTask's isRunning() as boolean)
+			current application's NSRunLoop's currentRunLoop()'s runUntilDate:(current application's NSDate's dateWithTimeIntervalSinceNow:0.05)
+		end repeat
+		shellTask's waitUntilExit()
+		stdoutHandle's closeFile()
+		stderrHandle's closeFile()
+		set stdoutHandle to missing value
+		set stderrHandle to missing value
+
+		set stdoutText to my trimTrailingLineEndings(my readUtf8File(stdoutPath))
+		set stderrText to my trimTrailingLineEndings(my readUtf8File(stderrPath))
+		set exitStatus to shellTask's terminationStatus() as integer
+		my removeTemporaryFile(stdoutPath)
+		my removeTemporaryFile(stderrPath)
+
+		if exitStatus is not 0 then
+			if stderrText is not "" then error stderrText number exitStatus
+			if stdoutText is not "" then error stdoutText number exitStatus
+			error "Shell command failed with exit status " & exitStatus & "." number exitStatus
 		end if
+
+		return stdoutText
+	on error errMsg number errNum
+		try
+			if shellTask is not missing value and (shellTask's isRunning() as boolean) then
+				shellTask's terminate()
+				set terminationDeadline to current application's NSDate's dateWithTimeIntervalSinceNow:1
+				repeat while (shellTask's isRunning() as boolean) and ((terminationDeadline's timeIntervalSinceNow()) as real) > 0
+					current application's NSRunLoop's currentRunLoop()'s runUntilDate:(current application's NSDate's dateWithTimeIntervalSinceNow:0.05)
+				end repeat
+				if shellTask's isRunning() as boolean then
+					shellTask's interrupt()
+					set interruptDeadline to current application's NSDate's dateWithTimeIntervalSinceNow:1
+					repeat while (shellTask's isRunning() as boolean) and ((interruptDeadline's timeIntervalSinceNow()) as real) > 0
+						current application's NSRunLoop's currentRunLoop()'s runUntilDate:(current application's NSDate's dateWithTimeIntervalSinceNow:0.05)
+					end repeat
+					if shellTask's isRunning() as boolean then
+						set killTask to current application's NSTask's launchedTaskWithLaunchPath:"/bin/kill" arguments:{"-KILL", (shellTask's processIdentifier() as text)}
+						killTask's waitUntilExit()
+						shellTask's waitUntilExit()
+					end if
+				end if
+			end if
+		end try
+		try
+			if stdoutHandle is not missing value then stdoutHandle's closeFile()
+		end try
+		try
+			if stderrHandle is not missing value then stderrHandle's closeFile()
+		end try
+		my removeTemporaryFile(stdoutPath)
+		my removeTemporaryFile(stderrPath)
+		error errMsg number errNum
 	end try
-	do shell script "rm -f " & quoted form of errFile
-	return stdoutResult
 end doShell
 
 ------------------------------------------------------------------
@@ -112,7 +220,7 @@ end doShell
 on resolveCommandPath(sourcePath, commandName)
 	log "DEBUG -> resolveCommandPath: " & commandName & " using " & sourcePath
 	set zshScript to "source " & quoted form of sourcePath & " >/dev/null 2>&1; command -v " & quoted form of commandName & "; exit 0;"
-	set commandPath to do shell script "/bin/zsh -c " & quoted form of zshScript
+	set commandPath to my doShell(zshScript)
 	log "DEBUG -> resolveCommandPath: " & commandName & " -> " & commandPath
 	return commandPath
 end resolveCommandPath
@@ -218,7 +326,7 @@ on ensureJqAvailable(sourcePath)
 	end if
 	
 	display dialog "This script requires jq for JSON parsing. Install it now using Homebrew?" buttons {"Cancel", "Install jq"} default button "Install jq" cancel button "Cancel" with icon caution
-	delay 2
+	my yieldForUi(0.2)
 
 	log "DEBUG -> ensureJqAvailable: installing jq via Homebrew"
 	display notification "Installing jq via Homebrew ..." with title notificationTitle
@@ -309,7 +417,7 @@ on collectGlobalPackages(sourcePath, nvmLocation, jqPath, versionList)
 	set rawOutput to ""
 	set collectionFailed to false
 	try
-		set rawOutput to do shell script "/bin/zsh -c " & quoted form of shellCmd
+		set rawOutput to my doShell(shellCmd)
 	on error errMsg
 		log "DEBUG -> collectGlobalPackages: shell error: " & errMsg
 		set collectionFailed to true
@@ -372,117 +480,61 @@ on collectGlobalPackages(sourcePath, nvmLocation, jqPath, versionList)
 end collectGlobalPackages
 
 ------------------------------------------------------------------
--- Core: resolvePackageConflicts
+-- Core: getGlobalPackageNames
 ------------------------------------------------------------------
-on resolvePackageConflicts(packageRecords)
-	log "DEBUG -> resolvePackageConflicts: processing " & (count of packageRecords) & " records"
-	
-	-- Build a unique list of package names
+on getGlobalPackageNames(packageRecords)
+	-- Global packages belong to a Node installation. Different versions across
+	-- Node majors are expected, so collect names without choosing one version.
 	set packageNames to {}
 	repeat with pkgRecord in packageRecords
 		set oldDelimiters to AppleScript's text item delimiters
 		set AppleScript's text item delimiters to tab
 		set parts to text items of (contents of pkgRecord)
 		set AppleScript's text item delimiters to oldDelimiters
+		if (count of parts) < 2 then error "Unexpected global package record: " & (contents of pkgRecord)
 		set pkgName to item 2 of parts
+		if pkgName is "" then error "A global package record has no name."
 		if not my listContains(packageNames, pkgName) then
 			set end of packageNames to pkgName
 		end if
 	end repeat
-	
-	-- For each unique package, check for version conflicts
-	set resolvedPackages to {}
-	repeat with pkgName in packageNames
-		set nameText to contents of pkgName
-		
-		-- Collect all distinct versions for this package
-		set versions to {}
-		set fromVersions to {}
-		repeat with pkgRecord in packageRecords
-			set oldDelimiters to AppleScript's text item delimiters
-			set AppleScript's text item delimiters to tab
-			set parts to text items of (contents of pkgRecord)
-			set AppleScript's text item delimiters to oldDelimiters
-			
-			if (item 2 of parts) is equal to nameText then
-				set pkgVersion to item 3 of parts
-				set pkgFrom to item 4 of parts
-				if not my listContains(versions, pkgVersion) then
-					set end of versions to pkgVersion
-					set end of fromVersions to pkgFrom
-				end if
-			end if
-		end repeat
-		
-		if (count of versions) is 1 then
-			-- No conflict
-			set end of resolvedPackages to (nameText & tab & item 1 of versions)
-		else
-			-- Version conflict -- ask the user
-			log "DEBUG -> resolvePackageConflicts: conflict for " & nameText & " (" & (count of versions) & " versions)"
-			
-			set versionOptions to {}
-			repeat with i from 1 to (count of versions)
-				set end of versionOptions to (item i of versions) & " (from " & (item i of fromVersions) & ")"
-			end repeat
-
-			-- Default to the highest package version (not necessarily from the newest Node)
-			set versionLines to my joinList(versions, linefeed)
-			set highestVersion to do shell script "echo " & quoted form of versionLines & " | sort -V | tail -1"
-			set defaultOption to item 1 of versionOptions
-			repeat with i from 1 to (count of versions)
-				if item i of versions is highestVersion then
-					set defaultOption to item i of versionOptions
-					exit repeat
-				end if
-			end repeat
-
-			set userChoice to choose from list versionOptions with title notificationTitle with prompt ("\"" & nameText & "\" has different versions installed. Which version would you like to keep?") default items {defaultOption}
-			if userChoice is false then
-				error number -128
-			end if
-			
-			-- Brief delay to let the dialog dismiss before heavy work continues
-			delay 2
-			
-			-- Extract version from "5.5.4 (from v22.6.0)"
-			set chosenText to item 1 of userChoice
-			set oldDelimiters to AppleScript's text item delimiters
-			set AppleScript's text item delimiters to " (from "
-			set chosenVersion to text item 1 of chosenText
-			set AppleScript's text item delimiters to oldDelimiters
-			set end of resolvedPackages to (nameText & tab & chosenVersion)
-		end if
-	end repeat
-	
-	log "DEBUG -> resolvePackageConflicts: resolved to " & (count of resolvedPackages) & " packages"
-	return resolvedPackages
-end resolvePackageConflicts
+	log "DEBUG -> getGlobalPackageNames: collected " & (count of packageNames) & " names"
+	return packageNames
+end getGlobalPackageNames
 
 ------------------------------------------------------------------
 -- Core: installGlobalPackages
 ------------------------------------------------------------------
-on installGlobalPackages(sourcePath, nvmLocation, targetVersion, packages, linkedPackages)
-	log "DEBUG -> installGlobalPackages: version=" & targetVersion & " packages=" & (count of packages) & " linked=" & (count of linkedPackages)
+on installGlobalPackages(sourcePath, nvmLocation, jqPath, targetVersion, packageNames, linkedPackages)
+	log "DEBUG -> installGlobalPackages: version=" & targetVersion & " packages=" & (count of packageNames) & " linked=" & (count of linkedPackages)
 	set nvmPrefix to "source " & quoted form of sourcePath & " >/dev/null && " & quoted form of nvmLocation
 
-	-- Install regular packages in batch
-	if (count of packages) > 0 then
+	-- Ask this Node installation which packages are missing or outdated. This
+	-- avoids reinstalling packages that are already current, and lets npm choose
+	-- a different compatible version for each Node major.
+	if (count of packageNames) > 0 then
+		set targetPrefix to nvmPrefix & " use " & quoted form of targetVersion & " >/dev/null && "
+		set installedCommand to targetPrefix & "installed=$(npm list --global --depth=0 --json 2>/dev/null); [ -n \"$installed\" ] || exit 1; printf '%s\\n' \"$installed\" | " & quoted form of jqPath & " -r 'if type == \"object\" and (has(\"error\") | not) then ((.dependencies // {}) | keys[]) else error(\"Invalid global package inventory\") end'"
+		set outdatedCommand to targetPrefix & "outdated=$(npm outdated --global --depth=0 --json 2>/dev/null); outdatedExitCode=$?; [ \"$outdatedExitCode\" -le 1 ] && [ -n \"$outdated\" ] || exit 1; printf '%s\\n' \"$outdated\" | " & quoted form of jqPath & " -r 'if type == \"object\" and (has(\"error\") | not) then keys[] else error(\"Invalid outdated-package report\") end'"
+		set installedNames to my splitWords(my doShell(installedCommand))
+		set outdatedNames to my splitWords(my doShell(outdatedCommand))
+
 		set packageSpecs to {}
-		repeat with pkg in packages
-			-- Format: "name<tab>version"
-			set oldDelimiters to AppleScript's text item delimiters
-			set AppleScript's text item delimiters to tab
-			set parts to text items of (contents of pkg)
-			set AppleScript's text item delimiters to oldDelimiters
-			set end of packageSpecs to quoted form of ((item 1 of parts) & "@" & (item 2 of parts))
+		repeat with pkgName in packageNames
+			set nameText to contents of pkgName
+			if not my listContains(installedNames, nameText) or my listContains(outdatedNames, nameText) then
+				set end of packageSpecs to quoted form of nameText
+			end if
 		end repeat
 
-		set packageString to my joinList(packageSpecs, " ")
-		log "DEBUG -> installGlobalPackages: installing " & packageString & " on " & targetVersion
-		display notification "Installing global packages on Node.js " & targetVersion & " ..." with title notificationTitle
-
-		my doShell(nvmPrefix & " use " & quoted form of targetVersion & " && npm install -g " & packageString)
+		if (count of packageSpecs) > 0 then
+			set packageString to my joinList(packageSpecs, " ")
+			log "DEBUG -> installGlobalPackages: installing " & packageString & " on " & targetVersion
+			display notification "Updating global packages on Node.js " & targetVersion & " ..." with title notificationTitle
+			my doShell(targetPrefix & "npm install --global --engine-strict " & packageString)
+		else
+			log "DEBUG -> installGlobalPackages: registry packages already current on " & targetVersion
+		end if
 	end if
 
 	-- Re-link local dev packages
@@ -533,11 +585,11 @@ on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 	set removeNonLts to false
 	if (count of nonLtsVersions) > 0 then
 		set versionListText to my joinList(nonLtsVersions, ", ")
-		display dialog "These installed versions are not current LTS and will be removed:" & return & return & versionListText & return & return & "Continue?" buttons {"Cancel", "Keep All", "Remove"} default button "Remove" cancel button "Cancel"
-		if button returned of result is "Remove" then
+		set removeChoice to display dialog "These installed versions are not current LTS and will be removed:" & return & return & versionListText & return & return & "Continue?" buttons {"Cancel", "Keep All", "Remove"} default button "Remove" cancel button "Cancel"
+		if button returned of removeChoice is "Remove" then
 			set removeNonLts to true
 		end if
-		delay 2
+		my yieldForUi(0.2)
 	end if
 
 	-- Collect global packages from ALL installed versions (including ones to be removed)
@@ -552,7 +604,7 @@ on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 	if collectionFailed of packageData then
 		display dialog "Warning: Failed to collect some global packages. Package migration may be incomplete." & return & return & "Continue with installation? (Version removal will be skipped to protect packages)" buttons {"Cancel", "Continue"} cancel button "Cancel" default button "Continue" with icon caution
 		set skipRemoval to true
-		delay 2
+		my yieldForUi(0.2)
 	end if
 
 	-- Warn about non-registry packages that cannot be automatically migrated
@@ -566,13 +618,14 @@ on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 		end repeat
 		set nonRegText to my joinList(nonRegNames, return)
 		display dialog "The following packages were installed from non-registry sources and will be skipped during migration:" & return & return & nonRegText & return & return & "You will need to reinstall these manually." buttons {"Cancel", "Continue"} cancel button "Cancel" default button "Continue" with icon caution
-		delay 2
+		my yieldForUi(0.2)
 	end if
 
-	-- Resolve package version conflicts
-	set resolvedPkgs to {}
+	-- Collect package names across installed Node versions. Each target resolves
+	-- its own latest compatible release instead of sharing one exact version.
+	set packageNames to {}
 	if (count of regularPkgs) > 0 then
-		set resolvedPkgs to my resolvePackageConflicts(regularPkgs)
+		set packageNames to my getGlobalPackageNames(regularPkgs)
 	end if
 
 	-- Install each LTS major version
@@ -596,36 +649,11 @@ on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 	end repeat
 
 	-- Install packages and re-link on each LTS version
-	if (count of resolvedPkgs) > 0 or (count of linkedPkgs) > 0 then
+	if (count of packageNames) > 0 or (count of linkedPkgs) > 0 then
 		display notification "Migrating global packages ..." with title notificationTitle
 		repeat with targetVersion in targetVersions
-			my installGlobalPackages(sourcePath, nvmLocation, contents of targetVersion, resolvedPkgs, linkedPkgs)
+			my installGlobalPackages(sourcePath, nvmLocation, jqPath, contents of targetVersion, packageNames, linkedPkgs)
 		end repeat
-	end if
-
-	-- Offer to update all global packages to latest
-	if (count of resolvedPkgs) > 0 then
-		display dialog "Would you like to update all global packages to their latest versions?" & return & return & "(Locally linked packages will not be affected)" buttons {"Skip", "Update"} default button "Update"
-		delay 2
-		if button returned of result is "Update" then
-			-- Build a space-separated list of package names (without versions) for targeted update.
-			-- Using "npm update -g <names>" instead of bare "npm update -g" avoids .DS_Store errors.
-			set pkgNames to {}
-			repeat with pkg in resolvedPkgs
-				set oldDelimiters to AppleScript's text item delimiters
-				set AppleScript's text item delimiters to tab
-				set parts to text items of (contents of pkg)
-				set AppleScript's text item delimiters to oldDelimiters
-				set end of pkgNames to quoted form of (item 1 of parts)
-			end repeat
-			set pkgNameString to my joinList(pkgNames, " ")
-
-			repeat with targetVersion in targetVersions
-				log "DEBUG -> runNvmUpdate: updating packages on " & (contents of targetVersion)
-				display notification "Updating global packages on Node.js " & (contents of targetVersion) & " ..." with title notificationTitle
-				my doShell(nvmPrefix & " use " & quoted form of (contents of targetVersion) & " && npm update -g " & pkgNameString)
-			end repeat
-		end if
 	end if
 
 	-- Uninstall non-LTS versions the user confirmed for removal
@@ -655,9 +683,9 @@ on runNvmUpdate(sourcePath, nvmLocation, jqPath)
 
 		if (count of oldPatchVersions) > 0 then
 			set patchListText to my joinList(oldPatchVersions, ", ")
-			display dialog "These older LTS patch versions can be removed:" & return & return & patchListText & return & return & "The latest patch for each LTS line has already been installed." buttons {"Keep All", "Remove"} default button "Remove"
-			delay 2
-			if button returned of result is "Remove" then
+			set patchChoice to display dialog "These older LTS patch versions can be removed:" & return & return & patchListText & return & return & "The latest patch for each LTS line has already been installed." buttons {"Keep All", "Remove"} default button "Remove"
+			my yieldForUi(0.2)
+			if button returned of patchChoice is "Remove" then
 				repeat with oldPatch in oldPatchVersions
 					log "DEBUG -> runNvmUpdate: removing old patch version " & (contents of oldPatch)
 					display notification "Removing old Node.js " & (contents of oldPatch) & " ..." with title notificationTitle

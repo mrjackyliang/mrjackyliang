@@ -18,12 +18,22 @@
 -- * Template bodies are stored as separate text files to preserve multiline content
 -- =================================================================================================================
 
+use framework "Foundation"
+use scripting additions
+
 ------------------------------------------------------------------
 -- Properties
 ------------------------------------------------------------------
 property notificationTitle : "Prompt Template Manager"
 property notificationSound : "Blow"
 property managePromptsLabel : "Manage Prompts..."
+
+------------------------------------------------------------------
+-- Helper: yieldForUi
+------------------------------------------------------------------
+on yieldForUi(durationSeconds)
+	current application's NSRunLoop's currentRunLoop()'s runUntilDate:(current application's NSDate's dateWithTimeIntervalSinceNow:durationSeconds)
+end yieldForUi
 
 ------------------------------------------------------------------
 -- Helper: getConfigDir
@@ -264,27 +274,55 @@ on editInTextEdit(initialContent, instructionText)
 
 	do shell script "open -a TextEdit " & quoted form of tempPath
 
-	display dialog instructionText & return & return & "Save your changes in TextEdit (⌘S), then click OK to continue." with title notificationTitle buttons {"Cancel", "OK"} default button "OK" with icon note
-	if button returned of the result is not "OK" then
-		do shell script "rm -f " & quoted form of tempPath
+	set instructionResponse to display dialog instructionText & return & return & "Save your changes in TextEdit (⌘S), then click OK to continue." with title notificationTitle buttons {"Cancel", "OK"} default button "OK" with icon note
+	if button returned of instructionResponse is not "OK" then
+		try
+			with timeout of 3 seconds
+				tell application "TextEdit"
+					repeat with doc in documents
+						if (path of doc) is tempPath then
+							close doc saving no
+							exit repeat
+						end if
+					end repeat
+				end tell
+			end timeout
+		end try
+		try
+			do shell script "rm -f " & quoted form of tempPath
+		end try
 		error number -128
 	end if
-	delay 2
+	my yieldForUi(0.2)
 
-	-- Read back what the user saved to disk
-	set editedContent to do shell script "cat " & quoted form of tempPath
+	try
+		-- Read back what the user saved to disk
+		set editedContent to do shell script "cat " & quoted form of tempPath
 
-	-- Close the document in TextEdit without saving again (user already saved)
-	tell application "TextEdit"
-		repeat with doc in documents
-			if (path of doc) is tempPath then
-				close doc saving no
-				exit repeat
-			end if
-		end repeat
-	end tell
+		-- Close the document in TextEdit without saving again (user already saved).
+		-- A short timeout keeps an unresponsive TextEdit from freezing the menu host.
+		try
+			with timeout of 3 seconds
+				tell application "TextEdit"
+					repeat with doc in documents
+						if (path of doc) is tempPath then
+							close doc saving no
+							exit repeat
+						end if
+					end repeat
+				end tell
+			end timeout
+		end try
+	on error errMsg number errNum
+		try
+			do shell script "rm -f " & quoted form of tempPath
+		end try
+		error errMsg number errNum
+	end try
 
-	do shell script "rm -f " & quoted form of tempPath
+	try
+		do shell script "rm -f " & quoted form of tempPath
+	end try
 	log "DEBUG -> editInTextEdit: read back " & (count of editedContent) & " characters"
 	return editedContent
 end editInTextEdit
@@ -563,7 +601,7 @@ on runDeletePrompt()
 	try
 		display dialog "Delete \"" & selectedName & "\"?" & return & return & "This will permanently remove the prompt and its template." with title notificationTitle buttons {"Cancel", "Delete"} cancel button "Cancel" default button "Cancel" with icon stop
 		-- If we get here, user clicked Delete
-		delay 2
+		my yieldForUi(0.2)
 
 		my deletePromptFromConfig(targetIndex)
 
@@ -593,6 +631,7 @@ on runManagePrompts()
 		set chosenAction to choose from list manageChoices with title notificationTitle with prompt "What would you like to do?" default items {"Add New Prompt"}
 		if chosenAction is false then exit repeat
 		set actionName to item 1 of chosenAction
+		my yieldForUi(0.2)
 
 		try
 			if actionName is "Add New Prompt" then
@@ -644,6 +683,7 @@ on runMain()
 				exit repeat
 			end if
 			set selectedItem to item 1 of chosenItem
+			my yieldForUi(0.2)
 
 			if selectedItem is managePromptsLabel then
 				my runManagePrompts()
