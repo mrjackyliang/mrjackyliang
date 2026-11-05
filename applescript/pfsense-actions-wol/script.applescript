@@ -1,24 +1,27 @@
 -- =================================================================================================================
 -- Wake on LAN via pfSense Actions
 --
--- Sends Wake-on-LAN requests through a "pfSense Actions" API to power on remote PCs, waits for them to boot, and
--- launches a remote desktop application of your choice. Supports multiple PCs with a management UI.
+-- Sends Wake-on-LAN requests through pfSense Actions to power on remote PCs, waits for them to boot, and launches a
+-- remote desktop application of your choice. Supports multiple PCs with a management UI.
 --
 -- PC configuration is stored at:
 --   ~/.config/pfsense-actions-wol/config.plist
 --
 -- Notes:
--- * Requires a "pfSense Actions" API endpoint for WoL and ping
+-- * Requires pfSense Actions 2.0.0 or later at an HTTPS address, such as one behind a reverse proxy
+-- * Each PC needs a personal access token with the "wol:execute" and "reachability:read" scopes, created in the
+--   pfSense Actions console under Access tokens
 -- * This script is interactive only
--- * Per-PC API keys are stored in macOS Keychain (service: "Wake on LAN via pfSense Actions")
+-- * Per-PC access tokens are stored in macOS Keychain (service: "Wake on LAN via pfSense Actions")
 --
 -- Good to know:
--- * Deleting a PC also permanently removes its API key from Keychain
+-- * Deleting a PC also permanently removes its access token from Keychain
+-- * pfSense Actions allows 3 action requests per 10 seconds, so the script pauses when it reaches that limit
 --
 -- Accepted Risks:
--- * API keys are briefly written to a curl config file during API calls (cleaned up afterward)
--- * If a PC rename fails mid-save, an orphaned Keychain entry may remain; the old config and key are still intact
--- * API keys appear briefly in process arguments during Keychain operations (inherent to the macOS "security" CLI)
+-- * Access tokens are briefly written to a curl config file during API calls (cleaned up afterward)
+-- * If a PC rename fails mid-save, an orphaned Keychain entry may remain; the old config and token are still intact
+-- * Access tokens appear briefly in process arguments during Keychain operations (inherent to the macOS "security" CLI)
 -- =================================================================================================================
 
 use framework "Foundation"
@@ -31,6 +34,9 @@ property notificationTitle : "Wake on LAN via pfSense Actions"
 property notificationSound : "Blow"
 property candidateApps : {{"Moonlight", "com.moonlight-stream.Moonlight"}, {"Parsec", "tv.parsec.www"}, {"Windows App", "com.microsoft.rdc.macos"}}
 property managePcsLabel : "Manage PCs..."
+property accessTokenPattern : "^pfa_[A-Za-z0-9_-]{43}$"
+property baseUrlPattern : "^https://[A-Za-z0-9._-]+(:[0-9]+)?/?$"
+property maximumBootWaitSeconds : 600
 
 ------------------------------------------------------------------
 -- Helper: yieldForUi
@@ -340,68 +346,89 @@ on deletePcFromConfig(targetName)
 end deletePcFromConfig
 
 ------------------------------------------------------------------
--- Helper: getApiKey
+-- Helper: getAccessToken
 ------------------------------------------------------------------
-on getApiKey(pcName)
+on getAccessToken(pcName)
 	set keychainService to "Wake on LAN via pfSense Actions"
-	log "DEBUG -> getApiKey: looking up Keychain (service=" & keychainService & ", account=" & pcName & ")"
+	log "DEBUG -> getAccessToken: looking up Keychain (service=" & keychainService & ", account=" & pcName & ")"
 
-	-- Try to read the key from Keychain
+	-- Try to read the token from Keychain
 	try
-		set theApiKey to my doShellResponsive("security find-generic-password -s " & quoted form of keychainService & " -a " & quoted form of pcName & " -w")
-		log "DEBUG -> getApiKey: found key in Keychain"
-		return theApiKey
+		set theToken to my doShellResponsive("security find-generic-password -s " & quoted form of keychainService & " -a " & quoted form of pcName & " -w")
+		log "DEBUG -> getAccessToken: found token in Keychain"
+		return theToken
 	on error
-		log "DEBUG -> getApiKey: key not found in Keychain, prompting user"
+		log "DEBUG -> getAccessToken: token not found in Keychain, prompting user"
 	end try
 
-	-- Prompt the user to enter the key
-	set userResponse to display dialog "Enter the pfSense Actions API key for " & pcName & ":" & return & return & "The key will be saved to your macOS Keychain." default answer "" with title notificationTitle buttons {"Cancel", "Save to Keychain"} cancel button "Cancel" default button "Save to Keychain" with hidden answer
-	if button returned of userResponse is not "Save to Keychain" then error number -128
-	set theApiKey to text returned of userResponse
+	return my promptForAccessToken(pcName, "Enter the pfSense Actions access token for " & pcName & ":")
+end getAccessToken
 
-	if theApiKey is "" then
-		display dialog "API key cannot be empty." with icon stop buttons {"OK"} default button "OK"
-		error number -128
-	end if
-	if not my matchesPattern(theApiKey, "^[^\"\\\\[:cntrl:]]+$") then
-		display dialog "API key cannot contain quotes, backslashes, or control characters." with icon stop buttons {"OK"} default button "OK"
-		error number -128
-	end if
+------------------------------------------------------------------
+-- Helper: promptForAccessToken
+------------------------------------------------------------------
+on promptForAccessToken(pcName, promptText)
+	repeat
+		set userResponse to display dialog promptText & return & return & "Create it in the pfSense Actions console under Access tokens, with the \"wol:execute\" and \"reachability:read\" scopes. It will be saved to your macOS Keychain." default answer "" with title notificationTitle buttons {"Cancel", "Save to Keychain"} cancel button "Cancel" default button "Save to Keychain" with hidden answer
+		set theToken to text returned of userResponse
+		if theToken is "" then
+			display dialog "Access token cannot be empty." with icon stop buttons {"OK"} default button "OK"
+		else if not my matchesPattern(theToken, accessTokenPattern) then
+			display dialog "That doesn't look like a pfSense Actions access token. Tokens start with \"pfa_\", and API keys from pfSense Actions 1.x no longer work." with icon stop buttons {"OK"} default button "OK"
+		else
+			exit repeat
+		end if
+	end repeat
 	my yieldForUi(0.2)
 
-	-- Save the key to Keychain
-	my setApiKey(pcName, theApiKey)
+	-- Save the token to Keychain
+	my setAccessToken(pcName, theToken)
 
-	return theApiKey
-end getApiKey
+	return theToken
+end promptForAccessToken
 
 ------------------------------------------------------------------
--- Helper: setApiKey
+-- Helper: setAccessToken
 ------------------------------------------------------------------
-on setApiKey(pcName, theKey)
+on setAccessToken(pcName, theToken)
 	set keychainService to "Wake on LAN via pfSense Actions"
-	log "DEBUG -> setApiKey: saving key to Keychain for " & pcName
+	log "DEBUG -> setAccessToken: saving token to Keychain for " & pcName
 
-	my doShellResponsive("security add-generic-password -U -s " & quoted form of keychainService & " -a " & quoted form of pcName & " -w " & quoted form of theKey)
+	my doShellResponsive("security add-generic-password -U -s " & quoted form of keychainService & " -a " & quoted form of pcName & " -w " & quoted form of theToken)
 
-	log "DEBUG -> setApiKey: key saved successfully"
-end setApiKey
+	log "DEBUG -> setAccessToken: token saved successfully"
+end setAccessToken
 
 ------------------------------------------------------------------
--- Helper: deleteApiKey
+-- Helper: deleteAccessToken
 ------------------------------------------------------------------
-on deleteApiKey(pcName)
+on deleteAccessToken(pcName)
 	set keychainService to "Wake on LAN via pfSense Actions"
-	log "DEBUG -> deleteApiKey: deleting key from Keychain for " & pcName
+	log "DEBUG -> deleteAccessToken: deleting token from Keychain for " & pcName
 
 	try
 		my doShellResponsive("security delete-generic-password -s " & quoted form of keychainService & " -a " & quoted form of pcName)
-		log "DEBUG -> deleteApiKey: key deleted"
+		log "DEBUG -> deleteAccessToken: token deleted"
 	on error
-		log "DEBUG -> deleteApiKey: key not found (already removed)"
+		log "DEBUG -> deleteAccessToken: token not found (already removed)"
 	end try
-end deleteApiKey
+end deleteAccessToken
+
+------------------------------------------------------------------
+-- Helper: replaceAccessToken
+------------------------------------------------------------------
+on replaceAccessToken(pcName, response)
+	if httpStatus of response is "403" then
+		set problemText to "The access token for " & pcName & " is missing a scope. It needs both \"wol:execute\" and \"reachability:read\"."
+	else
+		set problemText to "pfSense Actions didn't accept the access token for " & pcName & ". It may have expired or been revoked, or it may be an API key from pfSense Actions 1.x."
+	end if
+
+	display dialog problemText with title notificationTitle buttons {"Cancel", "Replace Token"} cancel button "Cancel" default button "Replace Token" with icon caution
+	my yieldForUi(0.2)
+
+	return my promptForAccessToken(pcName, "Enter a new pfSense Actions access token for " & pcName & ":")
+end replaceAccessToken
 
 ------------------------------------------------------------------
 -- Helper: matchesPattern
@@ -421,8 +448,8 @@ end matchesPattern
 on validatePcRecord(pcRecord)
 	set pcName to computerName of pcRecord
 
-	if not my matchesPattern(pfsenseActionsUrl of pcRecord, "^https://[A-Za-z0-9._-]+(:[0-9]+)?(/[^[:space:]\"\\\\[:cntrl:]]*)?$") then
-		error "Configuration for \"" & pcName & "\" has an invalid URL. It must be a valid HTTPS URL (e.g. https://host.example.com) with no spaces or special characters. Please edit this PC to fix it."
+	if not my matchesPattern(pfsenseActionsUrl of pcRecord, baseUrlPattern) then
+		error "Configuration for \"" & pcName & "\" has an invalid URL. It must be the HTTPS address of pfSense Actions without a path (e.g. https://actions.example.com). Please edit this PC to fix it."
 	end if
 	if not my matchesPattern(broadcastAddress of pcRecord, "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$") then
 		error "Configuration for \"" & pcName & "\" has an invalid broadcast address. Please edit this PC to fix it."
@@ -434,10 +461,10 @@ on validatePcRecord(pcRecord)
 		error "Configuration for \"" & pcName & "\" has an invalid MAC address. Please edit this PC to fix it."
 	end if
 	if not my matchesPattern(pingCount of pcRecord, "^[1-9][0-9]*$") then
-		error "Configuration for \"" & pcName & "\" has an invalid ping count. Please edit this PC to fix it."
+		error "Configuration for \"" & pcName & "\" has an invalid boot wait. Please edit this PC to fix it."
 	end if
-	if (pingCount of pcRecord as integer) > 600 then
-		error "Configuration for \"" & pcName & "\" has a ping count exceeding 600. Please edit this PC to fix it."
+	if (pingCount of pcRecord as integer) > maximumBootWaitSeconds then
+		error "Configuration for \"" & pcName & "\" has a boot wait over " & maximumBootWaitSeconds & " seconds. Please edit this PC to fix it."
 	end if
 end validatePcRecord
 
@@ -498,28 +525,78 @@ on getInstalledApps(candidates)
 end getInstalledApps
 
 ------------------------------------------------------------------
+-- Helper: lowercaseText
+------------------------------------------------------------------
+on lowercaseText(theText)
+	return ((current application's NSString's stringWithString:theText)'s lowercaseString()) as text
+end lowercaseText
+
+------------------------------------------------------------------
+-- Helper: apiUrl
+------------------------------------------------------------------
+on apiUrl(baseUrl, endpoint)
+	set trimmedUrl to baseUrl as text
+	repeat while trimmedUrl ends with "/"
+		set trimmedUrl to text 1 thru -2 of trimmedUrl
+	end repeat
+	return trimmedUrl & endpoint
+end apiUrl
+
+------------------------------------------------------------------
+-- Helper: errorDetails
+------------------------------------------------------------------
+on errorDetails(responseBody)
+	-- pfSense Actions answers errors with {"error": {"code": "...", "message": "..."}}
+	set errorCode to ""
+	set errorMessage to ""
+	try
+		set bodyData to (current application's NSString's stringWithString:responseBody)'s dataUsingEncoding:(current application's NSUTF8StringEncoding)
+		set parsedBody to current application's NSJSONSerialization's JSONObjectWithData:bodyData options:0 |error|:(missing value)
+		if parsedBody is not missing value and ((parsedBody's isKindOfClass:(current application's NSDictionary)) as boolean) then
+			set errorObject to parsedBody's objectForKey:"error"
+			if errorObject is not missing value and ((errorObject's isKindOfClass:(current application's NSDictionary)) as boolean) then
+				set codeValue to errorObject's objectForKey:"code"
+				set messageValue to errorObject's objectForKey:"message"
+				if codeValue is not missing value then set errorCode to codeValue as text
+				if messageValue is not missing value then set errorMessage to messageValue as text
+			end if
+		end if
+	end try
+	return {errorCode:errorCode, errorMessage:errorMessage}
+end errorDetails
+
+------------------------------------------------------------------
+-- Helper: describeFailure
+------------------------------------------------------------------
+on describeFailure(response)
+	set details to my errorDetails(responseBody of response)
+	if errorMessage of details is not "" then
+		return errorMessage of details & " (HTTP " & httpStatus of response & ")"
+	end if
+	if responseBody of response is not "" then
+		return "HTTP " & httpStatus of response & ": " & responseBody of response
+	end if
+	return "HTTP " & httpStatus of response
+end describeFailure
+
+------------------------------------------------------------------
 -- Helper: authenticatedPost
 ------------------------------------------------------------------
-on authenticatedPost(endpoint, requestBody, theApiKey, theBaseUrl, maxTime)
+on authenticatedPost(endpoint, requestBody, theToken, theBaseUrl, maxTime)
 	log "DEBUG -> authenticatedPost: " & endpoint
 	set connectionErrorMessage to "Could not connect to " & theBaseUrl & "." & return & return & "Please check the URL and your network connection."
+
+	-- Defense-in-depth: only write tokens that can't break curl config parsing
+	if not my matchesPattern(theToken, accessTokenPattern) then error "The saved access token isn't a pfSense Actions access token."
+
 	set authConfigPath to do shell script "mktemp"
 	try
-		-- Defense-in-depth: reject keys that could break curl config parsing
-		if not my matchesPattern(theApiKey, "^[^\"\\\\[:cntrl:]]+$") then
-			do shell script "rm -f " & quoted form of authConfigPath
-			error "API key contains characters unsafe for curl config file."
-		end if
-		set authFile to open for access POSIX file authConfigPath with write permission
-		try
-			write ("header = \"Authorization: Bearer " & theApiKey & "\"") to authFile
-		on error errMsg2 number errNum2
-			close access authFile
-			error errMsg2 number errNum2
-		end try
-		close access authFile
+		-- Writes in place, so the file keeps the owner-only permissions that mktemp gave it
+		set authConfig to current application's NSString's stringWithString:("header = \"Authorization: Bearer " & theToken & "\"")
+		set didWrite to authConfig's writeToFile:authConfigPath atomically:false encoding:(current application's NSUTF8StringEncoding) |error|:(missing value)
+		if not (didWrite as boolean) then error "Could not write the curl config file."
 
-		set curlResult to my doShellResponsive("curl --connect-timeout 10 --max-time " & maxTime & " --config " & quoted form of authConfigPath & " -s -w '\\n%{http_code}' -X POST " & quoted form of (theBaseUrl & endpoint) & " -H 'Content-Type: application/json' -d " & quoted form of requestBody)
+		set curlResult to my doShellResponsive("curl --connect-timeout 10 --max-time " & maxTime & " --config " & quoted form of authConfigPath & " -s -w '\\n%{http_code}' -X POST " & quoted form of (my apiUrl(theBaseUrl, endpoint)) & " -H 'Content-Type: application/json' -d " & quoted form of requestBody)
 		do shell script "rm -f " & quoted form of authConfigPath
 	on error errMsg number errNum
 		do shell script "rm -f " & quoted form of authConfigPath
@@ -550,42 +627,79 @@ end authenticatedPost
 ------------------------------------------------------------------
 -- Core: sendWakeOnLan
 ------------------------------------------------------------------
-on sendWakeOnLan(pcRecord, theApiKey)
+on sendWakeOnLan(pcRecord, theToken)
 	set pcName to computerName of pcRecord
 	log "DEBUG -> sendWakeOnLan: sending WoL request for " & pcName
 	display notification "Attempting to power on " & pcName & " ..." with title notificationTitle
 
-	set requestBody to "{\"broadcastAddress\": \"" & broadcastAddress of pcRecord & "\", \"macAddress\": \"" & macAddress of pcRecord & "\"}"
-	set response to my authenticatedPost("/wol", requestBody, theApiKey, pfsenseActionsUrl of pcRecord, 30)
-	log "DEBUG -> sendWakeOnLan: httpStatus=" & httpStatus of response
+	-- pfSense Actions accepts MAC addresses in all lowercase or all uppercase
+	set requestBody to "{\"broadcastAddress\": \"" & broadcastAddress of pcRecord & "\", \"macAddress\": \"" & my lowercaseText(macAddress of pcRecord) & "\"}"
+	set limitRetries to 0
 
-	if httpStatus of response is not "200" then
-		display dialog "Failed to power on " & pcName & " via Wake-on-LAN." & return & return & "HTTP " & (httpStatus of response) & ": " & (responseBody of response) with icon stop buttons {"OK"} default button "OK"
-		error number -128
-	end if
+	repeat
+		set response to my authenticatedPost("/api/v1/wol", requestBody, theToken, pfsenseActionsUrl of pcRecord, 30)
+		set responseStatus to httpStatus of response
+		log "DEBUG -> sendWakeOnLan: httpStatus=" & responseStatus
 
-	log "DEBUG -> sendWakeOnLan: success"
+		if responseStatus is "200" then
+			log "DEBUG -> sendWakeOnLan: success"
+			return theToken
+		else if responseStatus is "401" or responseStatus is "403" then
+			set theToken to my replaceAccessToken(pcName, response)
+		else if responseStatus is "429" and limitRetries < 3 then
+			-- A rate-limited request is rejected before pfSense runs anything, so sending it again is safe
+			set limitRetries to limitRetries + 1
+			my yieldForUi(10)
+		else
+			set failureText to "Failed to power on " & pcName & " via Wake-on-LAN." & return & return & my describeFailure(response)
+			display dialog failureText with icon stop buttons {"OK"} default button "OK"
+			error number -128
+		end if
+	end repeat
 end sendWakeOnLan
 
 ------------------------------------------------------------------
 -- Core: waitForBoot
 ------------------------------------------------------------------
-on waitForBoot(pcRecord, theApiKey)
+on waitForBoot(pcRecord, theToken)
 	set pcName to computerName of pcRecord
-	log "DEBUG -> waitForBoot: waiting for " & pcName & " to boot"
+	set bootWaitSeconds to (pingCount of pcRecord) as integer
+	log "DEBUG -> waitForBoot: waiting up to " & bootWaitSeconds & " seconds for " & pcName
 	display notification "Waiting for " & pcName & " to complete booting ..." with title notificationTitle
 
-	set requestBody to "{\"count\": " & pingCount of pcRecord & ", \"ipAddress\": \"" & ipAddress of pcRecord & "\", \"strict\": true}"
-	set pingMaxTime to ((pingCount of pcRecord) as integer) + 30
-	set response to my authenticatedPost("/ping", requestBody, theApiKey, pfsenseActionsUrl of pcRecord, pingMaxTime)
-	log "DEBUG -> waitForBoot: httpStatus=" & httpStatus of response
+	set deadline to (current date) + bootWaitSeconds
 
-	if httpStatus of response is not "200" then
-		display dialog "Could not determine if " & pcName & " has woken up via Wake-on-LAN." & return & return & "HTTP " & (httpStatus of response) & ": " & (responseBody of response) with icon stop buttons {"OK"} default button "OK"
-		error number -128
-	end if
+	repeat
+		-- Each ping attempt takes about 5 seconds, and one request allows up to 10 attempts
+		set secondsLeft to deadline - (current date)
+		set attemptCount to (secondsLeft + 4) div 5
+		if attemptCount > 10 then set attemptCount to 10
+		if attemptCount < 1 then set attemptCount to 1
 
-	log "DEBUG -> waitForBoot: boot confirmed"
+		set requestBody to "{\"count\": " & attemptCount & ", \"ipAddress\": \"" & ipAddress of pcRecord & "\", \"strict\": true}"
+		set response to my authenticatedPost("/api/v1/ping", requestBody, theToken, pfsenseActionsUrl of pcRecord, (attemptCount * 10) + 30)
+		set responseStatus to httpStatus of response
+		set responseCode to errorCode of (my errorDetails(responseBody of response))
+		log "DEBUG -> waitForBoot: httpStatus=" & responseStatus & ", attempts=" & attemptCount
+
+		if responseStatus is "200" then
+			log "DEBUG -> waitForBoot: boot confirmed"
+			return theToken
+		else if responseStatus is "503" and responseCode is "target_unreachable" then
+			if (current date) ≥ deadline then
+				display dialog pcName & " didn't answer within " & bootWaitSeconds & " seconds." & return & return & "It may still be starting, or Wake-on-LAN may be turned off in its firmware or operating system." with icon stop buttons {"OK"} default button "OK"
+				error number -128
+			end if
+		else if responseStatus is "429" and (current date) < deadline then
+			my yieldForUi(10)
+		else if responseStatus is "401" or responseStatus is "403" then
+			set theToken to my replaceAccessToken(pcName, response)
+		else
+			set failureText to "Could not determine if " & pcName & " has woken up via Wake-on-LAN." & return & return & my describeFailure(response)
+			display dialog failureText with icon stop buttons {"OK"} default button "OK"
+			error number -128
+		end if
+	end repeat
 end waitForBoot
 
 ------------------------------------------------------------------
@@ -635,9 +749,13 @@ on runPowerOn(pcRecord)
 	set pcName to computerName of pcRecord
 	log "DEBUG -> runPowerOn: start for " & pcName
 
-	set theApiKey to my getApiKey(pcName)
-	my sendWakeOnLan(pcRecord, theApiKey)
-	my waitForBoot(pcRecord, theApiKey)
+	set theToken to my getAccessToken(pcName)
+	if not my matchesPattern(theToken, accessTokenPattern) then
+		-- An API key saved for pfSense Actions 1.x can't be used with 2.0.0
+		set theToken to my replaceAccessToken(pcName, {httpStatus:"401", responseBody:""})
+	end if
+	set theToken to my sendWakeOnLan(pcRecord, theToken)
+	my waitForBoot(pcRecord, theToken)
 	set chosenAppName to my chooseAndLaunchApp(pcName)
 
 	log "DEBUG -> runPowerOn: showing completion notification"
@@ -673,33 +791,33 @@ on promptForPcFields(defaults)
 	-- pfSense Actions URL
 	set urlDefault to pfsenseActionsUrl of defaults
 	repeat
-		set userResponse to display dialog "Enter the pfSense Actions URL for " & pcName & ":" & return & "(e.g. https://pfsense-actions.example.com)" default answer urlDefault with title notificationTitle buttons {"Cancel", "OK"} default button "OK"
+		set userResponse to display dialog "Enter the HTTPS address of pfSense Actions for " & pcName & ":" & return & "(e.g. https://actions.example.com)" default answer urlDefault with title notificationTitle buttons {"Cancel", "OK"} default button "OK"
 		if button returned of userResponse is not "OK" then error number -128
 		set theUrl to text returned of userResponse
 		if theUrl is "" then
 			display dialog "URL cannot be empty." with icon stop buttons {"OK"} default button "OK"
-		else if not my matchesPattern(theUrl, "^https://[A-Za-z0-9._-]+(:[0-9]+)?(/[^[:space:]\"\\\\[:cntrl:]]*)?$") then
-			display dialog "URL must be a valid HTTPS URL (e.g. https://host.example.com/path) with no spaces or special characters." with icon stop buttons {"OK"} default button "OK"
+		else if not my matchesPattern(theUrl, baseUrlPattern) then
+			display dialog "URL must be an HTTPS address without a path (e.g. https://actions.example.com)." with icon stop buttons {"OK"} default button "OK"
 		else
 			exit repeat
 		end if
 		set urlDefault to theUrl
 	end repeat
 
-	-- API key
-	set apiKeyDefault to apiKey of defaults
+	-- Access token
+	set tokenDefault to accessToken of defaults
 	repeat
-		set userResponse to display dialog "Enter the pfSense Actions API key for " & pcName & ":" default answer apiKeyDefault with title notificationTitle buttons {"Cancel", "OK"} default button "OK" with hidden answer
+		set userResponse to display dialog "Enter the pfSense Actions access token for " & pcName & ":" & return & "(needs the wol:execute and reachability:read scopes)" default answer tokenDefault with title notificationTitle buttons {"Cancel", "OK"} default button "OK" with hidden answer
 		if button returned of userResponse is not "OK" then error number -128
-		set theApiKey to text returned of userResponse
-		if theApiKey is "" then
-			display dialog "API key cannot be empty." with icon stop buttons {"OK"} default button "OK"
-		else if not my matchesPattern(theApiKey, "^[^\"\\\\[:cntrl:]]+$") then
-			display dialog "API key cannot contain quotes, backslashes, or control characters." with icon stop buttons {"OK"} default button "OK"
+		set theToken to text returned of userResponse
+		if theToken is "" then
+			display dialog "Access token cannot be empty." with icon stop buttons {"OK"} default button "OK"
+		else if not my matchesPattern(theToken, accessTokenPattern) then
+			display dialog "That doesn't look like a pfSense Actions access token. Tokens start with \"pfa_\" and come from the console's Access tokens page." with icon stop buttons {"OK"} default button "OK"
 		else
 			exit repeat
 		end if
-		set apiKeyDefault to theApiKey
+		set tokenDefault to theToken
 	end repeat
 
 	-- Broadcast address
@@ -750,27 +868,27 @@ on promptForPcFields(defaults)
 		set macDefault to theMac
 	end repeat
 
-	-- Ping count
-	set pingDefault to pingCount of defaults
+	-- Boot wait (stored as pingCount, in seconds)
+	set bootWaitDefault to pingCount of defaults
 	repeat
-		set userResponse to display dialog "Enter the ping count (boot timeout) for " & pcName & ":" & return & "(number of ping attempts to wait for boot, max 600)" default answer pingDefault with title notificationTitle buttons {"Cancel", "OK"} default button "OK"
+		set userResponse to display dialog "Enter how long to wait for " & pcName & " to boot, in seconds:" & return & "(1 to " & maximumBootWaitSeconds & ")" default answer bootWaitDefault with title notificationTitle buttons {"Cancel", "OK"} default button "OK"
 		if button returned of userResponse is not "OK" then error number -128
-		set thePingCount to text returned of userResponse
-		if thePingCount is "" then
-			display dialog "Ping count cannot be empty." with icon stop buttons {"OK"} default button "OK"
-		else if not my matchesPattern(thePingCount, "^[1-9][0-9]*$") then
-			display dialog "Ping count must be a positive number." with icon stop buttons {"OK"} default button "OK"
-		else if (thePingCount as integer) > 600 then
-			display dialog "Ping count cannot exceed 600 (10 minutes)." with icon stop buttons {"OK"} default button "OK"
+		set theBootWait to text returned of userResponse
+		if theBootWait is "" then
+			display dialog "Boot wait cannot be empty." with icon stop buttons {"OK"} default button "OK"
+		else if not my matchesPattern(theBootWait, "^[1-9][0-9]*$") then
+			display dialog "Boot wait must be a whole number of seconds." with icon stop buttons {"OK"} default button "OK"
+		else if (theBootWait as integer) > maximumBootWaitSeconds then
+			display dialog "Boot wait cannot exceed " & maximumBootWaitSeconds & " seconds (10 minutes)." with icon stop buttons {"OK"} default button "OK"
 		else
 			exit repeat
 		end if
-		set pingDefault to thePingCount
+		set bootWaitDefault to theBootWait
 	end repeat
 
-	set pcRecord to {computerName:pcName, pfsenseActionsUrl:theUrl, broadcastAddress:theBroadcast, ipAddress:theIp, macAddress:theMac, pingCount:thePingCount}
+	set pcRecord to {computerName:pcName, pfsenseActionsUrl:theUrl, broadcastAddress:theBroadcast, ipAddress:theIp, macAddress:theMac, pingCount:theBootWait}
 
-	return {pcRecord:pcRecord, apiKey:theApiKey}
+	return {pcRecord:pcRecord, accessToken:theToken}
 end promptForPcFields
 
 ------------------------------------------------------------------
@@ -779,19 +897,19 @@ end promptForPcFields
 on runAddPc()
 	log "DEBUG -> runAddPc: start"
 
-	set emptyDefaults to {computerName:"", pfsenseActionsUrl:"", apiKey:"", broadcastAddress:"", ipAddress:"", macAddress:"", pingCount:"60"}
+	set emptyDefaults to {computerName:"", pfsenseActionsUrl:"", accessToken:"", broadcastAddress:"", ipAddress:"", macAddress:"", pingCount:"60"}
 	set promptResult to my promptForPcFields(emptyDefaults)
 	set pcRecord to pcRecord of promptResult
-	set theApiKey to apiKey of promptResult
+	set theToken to accessToken of promptResult
 	set pcName to computerName of pcRecord
 	my yieldForUi(0.2)
 
-	-- Save to Keychain first (a dangling key is safer than a keyless config entry)
-	my setApiKey(pcName, theApiKey)
+	-- Save to Keychain first (a dangling token is safer than a tokenless config entry)
+	my setAccessToken(pcName, theToken)
 	try
 		my addPcToConfig(pcRecord)
 	on error errMsg number errNum
-		my deleteApiKey(pcName)
+		my deleteAccessToken(pcName)
 		error errMsg number errNum
 	end try
 
@@ -818,10 +936,10 @@ on runEditPc()
 
 	set pcRecord to my loadPc(targetName)
 	set originalName to computerName of pcRecord
-	set pendingApiKey to ""
+	set pendingAccessToken to ""
 
 	-- Field picker loop
-	set fieldChoices to {"Name", "URL", "API Key", "Broadcast Address", "IP Address", "MAC Address", "Ping Count", "Done"}
+	set fieldChoices to {"Name", "URL", "Access Token", "Broadcast Address", "IP Address", "MAC Address", "Boot Wait", "Done"}
 	set editCancelled to false
 
 	repeat
@@ -864,27 +982,27 @@ on runEditPc()
 				set newValue to text returned of userResponse
 				if newValue is "" then
 					exit repeat
-				else if not my matchesPattern(newValue, "^https://[A-Za-z0-9._-]+(:[0-9]+)?(/[^[:space:]\"\\\\[:cntrl:]]*)?$") then
-					display dialog "URL must be a valid HTTPS URL (e.g. https://host.example.com/path) with no spaces or special characters." with icon stop buttons {"OK"} default button "OK"
+				else if not my matchesPattern(newValue, baseUrlPattern) then
+					display dialog "URL must be an HTTPS address without a path (e.g. https://actions.example.com)." with icon stop buttons {"OK"} default button "OK"
 					set editDefault to newValue
 				else
 					set pfsenseActionsUrl of pcRecord to newValue
 					exit repeat
 				end if
 			end repeat
-		else if fieldName is "API Key" then
+		else if fieldName is "Access Token" then
 			set editDefault to ""
 			repeat
-				set userResponse to display dialog "Enter the new API key:" default answer editDefault with title notificationTitle buttons {"Cancel", "OK"} default button "OK" with hidden answer
+				set userResponse to display dialog "Enter the new access token:" default answer editDefault with title notificationTitle buttons {"Cancel", "OK"} default button "OK" with hidden answer
 				if button returned of userResponse is not "OK" then exit repeat
 				set newValue to text returned of userResponse
 				if newValue is "" then
 					exit repeat
-				else if not my matchesPattern(newValue, "^[^\"\\\\[:cntrl:]]+$") then
-					display dialog "API key cannot contain quotes, backslashes, or control characters." with icon stop buttons {"OK"} default button "OK"
+				else if not my matchesPattern(newValue, accessTokenPattern) then
+					display dialog "That doesn't look like a pfSense Actions access token. Tokens start with \"pfa_\" and come from the console's Access tokens page." with icon stop buttons {"OK"} default button "OK"
 					set editDefault to newValue
 				else
-					set pendingApiKey to newValue
+					set pendingAccessToken to newValue
 					exit repeat
 				end if
 			end repeat
@@ -936,19 +1054,19 @@ on runEditPc()
 					exit repeat
 				end if
 			end repeat
-		else if fieldName is "Ping Count" then
+		else if fieldName is "Boot Wait" then
 			set editDefault to pingCount of pcRecord
 			repeat
-				set userResponse to display dialog "Enter the new ping count:" default answer editDefault with title notificationTitle buttons {"Cancel", "OK"} default button "OK"
+				set userResponse to display dialog "Enter the new boot wait, in seconds:" default answer editDefault with title notificationTitle buttons {"Cancel", "OK"} default button "OK"
 				if button returned of userResponse is not "OK" then exit repeat
 				set newValue to text returned of userResponse
 				if newValue is "" then
 					exit repeat
 				else if not my matchesPattern(newValue, "^[1-9][0-9]*$") then
-					display dialog "Ping count must be a positive number." with icon stop buttons {"OK"} default button "OK"
+					display dialog "Boot wait must be a whole number of seconds." with icon stop buttons {"OK"} default button "OK"
 					set editDefault to newValue
-				else if (newValue as integer) > 600 then
-					display dialog "Ping count cannot exceed 600 (10 minutes)." with icon stop buttons {"OK"} default button "OK"
+				else if (newValue as integer) > maximumBootWaitSeconds then
+					display dialog "Boot wait cannot exceed " & maximumBootWaitSeconds & " seconds (10 minutes)." with icon stop buttons {"OK"} default button "OK"
 					set editDefault to newValue
 				else
 					set pingCount of pcRecord to newValue
@@ -963,28 +1081,28 @@ on runEditPc()
 	else
 	my yieldForUi(0.2)
 
-	-- Handle Keychain updates before config (a dangling key is safer than a keyless config entry)
+	-- Handle Keychain updates before config (a dangling token is safer than a tokenless config entry)
 	set newName to computerName of pcRecord
 	if newName is not originalName then
-		if pendingApiKey is not "" then
-			-- New key provided + rename: save under new name first
-			log "DEBUG -> runEditPc: name changed + new API key; saving under " & newName
-			my setApiKey(newName, pendingApiKey)
+		if pendingAccessToken is not "" then
+			-- New token provided + rename: save under new name first
+			log "DEBUG -> runEditPc: name changed + new access token; saving under " & newName
+			my setAccessToken(newName, pendingAccessToken)
 		else
-			-- Rename only: copy existing key to new name first
-			log "DEBUG -> runEditPc: name changed; migrating key from " & originalName & " to " & newName
+			-- Rename only: copy existing token to new name first
+			log "DEBUG -> runEditPc: name changed; migrating token from " & originalName & " to " & newName
 			try
 				set keychainService to "Wake on LAN via pfSense Actions"
-				set existingKey to my doShellResponsive("security find-generic-password -s " & quoted form of keychainService & " -a " & quoted form of originalName & " -w")
-				my setApiKey(newName, existingKey)
+				set existingToken to my doShellResponsive("security find-generic-password -s " & quoted form of keychainService & " -a " & quoted form of originalName & " -w")
+				my setAccessToken(newName, existingToken)
 			on error
-				log "DEBUG -> runEditPc: no existing key to migrate"
+				log "DEBUG -> runEditPc: no existing token to migrate"
 			end try
 		end if
-	else if pendingApiKey is not "" then
-		-- Name unchanged, but API key was edited
-		log "DEBUG -> runEditPc: saving new API key for " & newName
-		my setApiKey(newName, pendingApiKey)
+	else if pendingAccessToken is not "" then
+		-- Name unchanged, but access token was edited
+		log "DEBUG -> runEditPc: saving new access token for " & newName
+		my setAccessToken(newName, pendingAccessToken)
 	end if
 
 	-- Save changes to config
@@ -992,7 +1110,7 @@ on runEditPc()
 
 	-- Clean up old Keychain entry after successful config update
 	if newName is not originalName then
-		my deleteApiKey(originalName)
+		my deleteAccessToken(originalName)
 	end if
 
 	display notification "Updated \"" & newName & "\" configuration." with title notificationTitle
@@ -1028,15 +1146,15 @@ on runDeletePc()
 		"Broadcast: " & broadcastAddress of pcRecord & return & ¬
 		"IP: " & ipAddress of pcRecord & return & ¬
 		"MAC: " & macAddress of pcRecord & return & ¬
-		"Ping Count: " & pingCount of pcRecord
+		"Boot Wait: " & pingCount of pcRecord & " seconds"
 
 	try
-		display dialog "Delete this PC?" & return & return & detailText & return & return & "This will also remove its API key from Keychain." with title notificationTitle buttons {"Cancel", "Delete"} cancel button "Cancel" default button "Cancel" with icon stop
+		display dialog "Delete this PC?" & return & return & detailText & return & return & "This will also remove its access token from Keychain." with title notificationTitle buttons {"Cancel", "Delete"} cancel button "Cancel" default button "Cancel" with icon stop
 		-- If we get here, user clicked Delete
 		my yieldForUi(0.2)
 
 		my deletePcFromConfig(targetName)
-		my deleteApiKey(targetName)
+		my deleteAccessToken(targetName)
 
 		display notification "Deleted \"" & targetName & "\" from configuration." with title notificationTitle
 		log "DEBUG -> runDeletePc: completed"
