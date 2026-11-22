@@ -179,12 +179,7 @@
       "template": "publish",
       "name": "project",
       "triggers": [
-        {
-          "name": "push",
-          "branches": [
-            "main"
-          ]
-        }
+        "release"
       ],
       "runsOn": "ubuntu-24.04",
       "timeoutMinutes": 30,
