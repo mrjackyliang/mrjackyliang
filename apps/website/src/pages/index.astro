@@ -1,0 +1,274 @@
+---
+import { ChevronRight, Download, FileText } from '@lucide/astro';
+import { getCollection } from 'astro:content';
+
+import badges from '../data/badges.json';
+import messages from '../i18n/en.json';
+import Layout from '../layouts/layout.astro';
+import { Runner as Scripts } from '../lib/scripts.js';
+import { Runner as Site } from '../lib/site.js';
+
+const collectionEntries = await Promise.all([
+  getCollection('categories'),
+  getCollection('scripts'),
+]);
+const categories = collectionEntries[0].sort((leftCategory, rightCategory) => leftCategory.data.order - rightCategory.data.order);
+const scripts = collectionEntries[1];
+const scriptLanguages = [...new Set(scripts.map((script) => script.data.language))].sort();
+const categorySymbols = new Map([
+  ['applescript', '🍎'],
+  ['games', '🎮'],
+  ['scripts', '🧰'],
+  ['snippets', '✂️'],
+  ['ti-84', '🧮'],
+]);
+const categoryRows = categories.map((category) => ({
+  category,
+  count: scripts.filter((script) => script.data.category === category.id).length,
+  symbol: categorySymbols.get(category.id) ?? '',
+}));
+const badgeSections = [
+  {
+    id: 'languages',
+    heading: messages.home.languagesHeading,
+    items: badges.languages,
+  },
+  {
+    id: 'tools',
+    heading: messages.home.toolsHeading,
+    items: badges.tools,
+  },
+  {
+    id: 'likes',
+    heading: messages.home.likesHeading,
+    items: badges.likes,
+  },
+];
+const featuredScriptConfigs = [
+  {
+    id: 'applescript/update-homebrew',
+    fileLabel: 'update-homebrew.applescript',
+  },
+  {
+    id: 'scripts/transcribe',
+    fileLabel: 'transcribe.sh',
+  },
+  {
+    id: 'games/boggle-game',
+    fileLabel: 'boggle-game.java',
+  },
+];
+const featuredScripts = featuredScriptConfigs.map((featuredScriptConfig) => {
+  const script = scripts.find((scriptEntry) => scriptEntry.id === featuredScriptConfig.id);
+
+  if (script === undefined) {
+    return undefined;
+  }
+
+  const latest = Scripts.getLatestVersion(script.data.versions);
+
+  if (latest === undefined) {
+    return undefined;
+  }
+
+  const scriptIdParts = script.id.split('/');
+  const latestFiles = Scripts.listFiles({
+    category: scriptIdParts[0] ?? '',
+    slug: scriptIdParts[1] ?? '',
+    version: latest.version,
+  });
+  const downloadPath = (latestFiles.length === 1)
+    ? Site.withBase(`/scripts/${script.id}/latest/${latestFiles[0]}`)
+    : Site.withBase(`/scripts/${script.id}/latest.zip`);
+
+  return {
+    downloadPath,
+    fileLabel: featuredScriptConfig.fileLabel,
+    latest,
+    script,
+  };
+}).filter((featuredScript) => featuredScript !== undefined);
+const headingParts = messages.home.heading.split('Jacky');
+const profileParts = messages.home.eyebrow.split(' · ');
+const profileRole = profileParts[0] ?? messages.home.eyebrow;
+const profileLocation = profileParts[1] ?? '';
+const profileStatus = (messages.home.aboutBefore.split('. ')[0] ?? '').replace('I am a self-taught web developer ', '');
+const identity = Site.getIdentity();
+const personStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  'name': identity.title ?? '',
+  'url': Site.absoluteUrl('/', Astro.site),
+  'image': Site.absoluteUrl('/thumbnails/home.png', Astro.site),
+  'jobTitle': profileRole,
+  'description': identity.metaDescription ?? '',
+  'homeLocation': {
+    '@type': 'Place',
+    'name': profileLocation,
+  },
+  'sameAs': [identity.github].filter((sameAsUrl) => sameAsUrl !== undefined),
+};
+---
+
+<Layout title={messages.metadata.homeTitle} description={identity.metaDescription ?? ''} thumbnail="home" ogType="profile" structuredData={personStructuredData}>
+  <div class="terminal-container home-page">
+    <section class="terminal-section home-hero" id="introduction" aria-labelledby="introduction-heading">
+      <p class="terminal-command">
+        <span><span class="terminal-prompt-user">jacky@nyc</span> <span class="terminal-prompt-path">~</span> %</span>
+        <code>whoami</code>
+      </p>
+
+      <h1 id="introduction-heading">
+        {headingParts[0]}<span class="terminal-heading-accent">Jacky</span>{headingParts[1]}<span class="terminal-cursor" aria-hidden="true"></span>
+      </h1>
+
+      <dl class="profile-facts">
+        <dt>role</dt>
+        <dd>{profileRole}</dd>
+        <dt>location</dt>
+        <dd><strong>{profileLocation} 🗽</strong></dd>
+        <dt>status</dt>
+        <dd>{profileStatus}</dd>
+      </dl>
+
+      <div class="terminal-output">
+        <p>{messages.home.welcome}</p>
+        <p>{messages.home.aboutBefore}<strong>{messages.home.aboutCity}</strong>{messages.home.aboutAfter}</p>
+        <p>{messages.home.biographyBefore}<a href={messages.home.biographyUrl}>{messages.home.biographyLink}</a>{messages.home.biographyAfter}</p>
+      </div>
+
+      <div class="terminal-actions">
+        <a class="terminal-button terminal-button-primary" href={Site.withBase('/scripts/')}>
+          <ChevronRight aria-hidden="true" size={16} stroke-width={2} />
+          <span>{messages.home.primaryAction}</span>
+        </a>
+        <a class="terminal-button" href={messages.home.biographyUrl}>
+          <FileText aria-hidden="true" size={16} stroke-width={2} />
+          <span>{messages.home.secondaryAction}</span>
+        </a>
+      </div>
+
+      <dl class="terminal-stats">
+        <div>
+          <dt>{messages.home.projectCountLabel}</dt>
+          <dd>{scripts.length}</dd>
+        </div>
+        <div>
+          <dt>{messages.home.categoryCountLabel}</dt>
+          <dd>{categories.length}</dd>
+        </div>
+        <div>
+          <dt>{messages.home.languageCountLabel}</dt>
+          <dd>{scriptLanguages.length}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="terminal-section" aria-labelledby="stack-heading">
+      <p class="terminal-command">
+        <span><span class="terminal-prompt-user">jacky@nyc</span> <span class="terminal-prompt-path">~</span> %</span>
+        <code>cat ~/.stack/*.md</code>
+      </p>
+      <h2 class="visually-hidden" id="stack-heading">{messages.home.badgesHeading}</h2>
+
+      <div class="badge-groups">
+        {badgeSections.map((badgeSection) => (
+          <section class="badge-group" id={badgeSection.id} aria-labelledby={`${badgeSection.id}-heading`}>
+            <h3 id={`${badgeSection.id}-heading`}>{badgeSection.heading}</h3>
+            <ul class="badge-list">
+              {badgeSection.items.map((item) => (
+                <li>
+                  <a class="badge-link" href={item.url}>
+                    <img src={item.image} alt={item.name} height="28" loading="lazy" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </section>
+
+    <section class="terminal-section" id="scripts" aria-labelledby="scripts-heading">
+      <p class="terminal-command">
+        <span><span class="terminal-prompt-user">jacky@nyc</span> <span class="terminal-prompt-path">~</span> %</span>
+        <code>ls -l scripts/ <span class="terminal-command-comment"># {messages.home.scriptsHeading}</span></code>
+      </p>
+      <h2 class="visually-hidden" id="scripts-heading">{messages.home.scriptsHeading}</h2>
+
+      <div class="terminal-table-frame terminal-table-frame-plain">
+        <table class="category-list">
+          <caption class="visually-hidden">{messages.home.scriptsDescription}</caption>
+          <thead class="visually-hidden">
+            <tr>
+              <th scope="col">Permissions</th>
+              <th scope="col">Count</th>
+              <th scope="col">Category</th>
+              <th scope="col">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categoryRows.map((item) => (
+              <tr>
+                <td class="category-permissions">drwxr-xr-x</td>
+                <td class="category-count">{item.count}</td>
+                <th class="category-name" scope="row"><a href={Site.withBase(`/scripts/#${item.category.id}`)}>{item.category.id}</a></th>
+                <td class="category-description"><span aria-hidden="true">{item.symbol}</span> {item.category.data.description}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p class="category-total">
+        total {scripts.length} — <a href={Site.withBase('/scripts/')}>{messages.home.scriptsAction} <span aria-hidden="true">→</span></a>
+      </p>
+
+      <div class="featured-files">
+        {featuredScripts.map((item) => (
+          <article class="code-file-card">
+            <header class="code-file-header">
+              <span class="code-file-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span>{item.fileLabel}</span>
+            </header>
+            <div class="code-file-body">
+              <h3><a href={Site.withBase(`/scripts/${item.script.id}/`)}>{item.script.data.title}</a></h3>
+              <p class="code-comment"># {item.script.data.description}</p>
+              <p class="code-attributes">
+                <span class="code-key">lang</span>=<span class="code-string">"{item.script.data.language}"</span>{' '}
+                <span class="code-key">ver</span>=<span class="code-string">"{item.latest.version}"</span>
+              </p>
+              <a class="code-download" href={item.downloadPath} download>
+                <Download aria-hidden="true" size={14} stroke-width={2} />
+                <span>./download --latest</span>
+              </a>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="terminal-section terminal-section-last" id="support" aria-labelledby="support-heading">
+      <p class="terminal-command">
+        <span><span class="terminal-prompt-user">jacky@nyc</span> <span class="terminal-prompt-path">~</span> %</span>
+        <code>cat support.md</code>
+      </p>
+
+      <div class="support-box">
+        <span class="support-file-label" aria-hidden="true">support.md</span>
+        <h2 id="support-heading"># {messages.home.supportHeading}</h2>
+        <p>{messages.home.supportAppreciation}</p>
+        <p class="support-reason">{messages.home.supportReason}</p>
+        <ul class="support-badges">
+          {badges.support.map((item) => (
+            <li>
+              <a class="badge-link" href={item.url}>
+                <img src={item.image} alt={item.name} height="28" loading="lazy" />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  </div>
+</Layout>

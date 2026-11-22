@@ -1,0 +1,271 @@
+---
+import '@fontsource-variable/jetbrains-mono';
+
+import {
+  FolderCode,
+  Monitor,
+  Moon,
+  Sun,
+  Terminal,
+} from '@lucide/astro';
+import { Github } from 'simple-icons-astro';
+
+import messages from '../i18n/en.json';
+import { Runner as Site } from '../lib/site.js';
+import '../styles/global.css';
+
+type Props = {
+  title: string;
+  description: string;
+  thumbnail: 'home' | 'scripts' | 'script' | 'terms' | 'privacy' | 'not-found';
+  ogType?: 'website' | 'profile' | 'article';
+  structuredData?: Record<string, unknown>;
+  noindex?: boolean;
+};
+
+const {
+  title,
+  description,
+  thumbnail,
+  ogType = 'website',
+  structuredData,
+  noindex = false,
+} = Astro.props;
+const identity = Site.getIdentity();
+const siteName = identity.title ?? '';
+const pageTitle = (title === siteName) ? title : `${title} | ${siteName}`;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site).href;
+const ogImageUrl = Site.absoluteUrl(`/thumbnails/${thumbnail}.png`, Astro.site);
+const basePath = Site.withBase('/');
+const currentPath = `/${Astro.url.pathname.slice(basePath.length)}`;
+const isHome = currentPath === '/';
+const isScripts = currentPath.startsWith('/scripts');
+const githubUrl = identity.github ?? '';
+const themeStorageKey = `${identity.projectName ?? 'site'}-theme`;
+const themeSystemLabel = `${messages.theme.label}: ${messages.theme.system}`;
+---
+
+<!doctype html>
+<html lang={Astro.currentLocale ?? 'en'}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="author" content={siteName} />
+    {(noindex === true) && <meta name="robots" content="noindex" />}
+    {(noindex === false) && <link rel="canonical" href={canonicalUrl} />}
+    <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#07090a" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href={Site.withBase('/favicon.ico')} sizes="32x32" />
+    <link rel="icon" type="image/png" href={Site.withBase('/favicon-96x96.png')} sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href={Site.withBase('/favicon.svg')} />
+    <link rel="apple-touch-icon" href={Site.withBase('/apple-touch-icon.png')} />
+    <link rel="manifest" href={Site.withBase('/site.webmanifest')} />
+    <link rel="sitemap" href={Site.withBase('/sitemap-index.xml')} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    {(noindex === false) && <meta property="og:url" content={canonicalUrl} />}
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={`${siteName} · ${messages.home.eyebrow}`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    <meta name="twitter:image:alt" content={`${siteName} · ${messages.home.eyebrow}`} />
+    {(structuredData !== undefined) && <script is:inline type="application/ld+json" set:html={JSON.stringify(structuredData)} />}
+    <script is:inline define:vars={{ themeStorageKey }}>
+      try {
+        const themeChoice = window.localStorage.getItem(themeStorageKey);
+
+        if (themeChoice === 'light' || themeChoice === 'dark') {
+          document.documentElement.setAttribute('data-theme', themeChoice);
+        }
+      } catch {
+        // Blocked storage leaves the site on the system theme.
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">{messages.accessibility.skipContent}</a>
+
+    <header class="site-header">
+      <div class="terminal-container site-header-inner">
+        <a class="site-brand" href={Site.withBase('/')} aria-label={siteName}>
+          <span class="terminal-prompt-user">jacky@nyc</span> <span class="terminal-prompt-path">~</span> %
+        </a>
+
+        <nav class="site-navigation" aria-label={messages.navigation.label}>
+          <ul class="site-navigation-list">
+            <li>
+              <a
+                class:list={['site-navigation-link', { 'site-navigation-link-active': isHome }]}
+                href={Site.withBase('/')}
+                aria-current={isHome ? 'page' : undefined}
+              >
+                <Terminal aria-hidden="true" size={15} stroke-width={1.8} />
+                <span>{messages.navigation.home}</span>
+              </a>
+            </li>
+            <li>
+              <a
+                class:list={['site-navigation-link', { 'site-navigation-link-active': isScripts }]}
+                href={Site.withBase('/scripts/')}
+                aria-current={isScripts ? 'page' : undefined}
+              >
+                <FolderCode aria-hidden="true" size={15} stroke-width={1.8} />
+                <span>{messages.navigation.scripts}</span>
+              </a>
+            </li>
+            <li>
+              <a class="site-navigation-link site-navigation-icon-link" href={githubUrl} rel="me" aria-label={messages.navigation.github}>
+                <Github aria-hidden="true" fill="currentColor" size={15} />
+              </a>
+            </li>
+          </ul>
+        </nav>
+
+        <button
+          class="site-navigation-link site-navigation-icon-link theme-toggle"
+          type="button"
+          aria-label={themeSystemLabel}
+          title={themeSystemLabel}
+          data-theme-toggle
+          data-storage-key={themeStorageKey}
+          data-label={messages.theme.label}
+          data-label-system={messages.theme.system}
+          data-label-light={messages.theme.light}
+          data-label-dark={messages.theme.dark}
+        >
+          <Monitor class="theme-toggle-icon theme-toggle-icon-system" aria-hidden="true" size={15} stroke-width={1.8} />
+          <Sun class="theme-toggle-icon theme-toggle-icon-light" aria-hidden="true" size={15} stroke-width={1.8} />
+          <Moon class="theme-toggle-icon theme-toggle-icon-dark" aria-hidden="true" size={15} stroke-width={1.8} />
+        </button>
+      </div>
+    </header>
+
+    <main id="main-content" class="site-main" tabindex="-1">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="terminal-container site-footer-inner">
+        <div class="site-footer-status">
+          <p class="site-footer-exit">[exit 0]</p>
+          <p>{identity.copyright}</p>
+        </div>
+
+        <nav class="site-footer-navigation" aria-label={messages.navigation.footerLabel}>
+          <ul class="site-footer-links">
+            <li><a href={Site.withBase('/terms/')}>{messages.navigation.terms}</a></li>
+            <li><a href={Site.withBase('/privacy/')}>{messages.navigation.privacy}</a></li>
+            <li><a href={githubUrl} rel="me">{messages.navigation.github}</a></li>
+          </ul>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      import { Runner as Theme } from '../lib/theme.js';
+
+      /**
+       * Layout - Theme Toggle.
+       *
+       * The header button that cycles the color theme between system, light, and dark.
+       * The head script has already applied any stored choice before first paint.
+       *
+       * @since 1.0.0
+       */
+      const toggle = document.querySelector('[data-theme-toggle]');
+
+      if (toggle instanceof HTMLButtonElement) {
+        const storageKey = toggle.dataset['storageKey'] ?? 'theme';
+        const labels = {
+          system: toggle.dataset['labelSystem'] ?? 'System',
+          light: toggle.dataset['labelLight'] ?? 'Light',
+          dark: toggle.dataset['labelDark'] ?? 'Dark',
+        };
+
+        /**
+         * Layout - Theme Toggle - Read Choice.
+         *
+         * Reads the stored choice, or the applied theme when storage is blocked.
+         * A missing value means the visitor is on the system theme.
+         *
+         * @returns {'system' | 'light' | 'dark'}
+         *
+         * @since 1.0.0
+         */
+        const readChoice = () => {
+          try {
+            return Theme.parseChoice(window.localStorage.getItem(storageKey));
+          } catch {
+            return Theme.parseChoice(document.documentElement.getAttribute('data-theme'));
+          }
+        };
+
+        /**
+         * Layout - Theme Toggle - Apply Choice.
+         *
+         * Sets or clears the "data-theme" override and updates the button name.
+         * Clearing it hands the theme back to the system setting.
+         *
+         * @param {'system' | 'light' | 'dark'} choice - Choice.
+         *
+         * @returns {void}
+         *
+         * @since 1.0.0
+         */
+        const applyChoice = (choice: ReturnType<typeof Theme.parseChoice>) => {
+          const label = `${toggle.dataset['label'] ?? ''}: ${labels[choice]}`;
+
+          if (choice === 'system') {
+            document.documentElement.removeAttribute('data-theme');
+          } else {
+            document.documentElement.setAttribute('data-theme', choice);
+          }
+
+          toggle.setAttribute('aria-label', label);
+          toggle.setAttribute('title', label);
+
+          return;
+        };
+
+        applyChoice(readChoice());
+
+        toggle.addEventListener('click', () => {
+          const nextChoice = Theme.getNextChoice(readChoice());
+
+          try {
+            if (nextChoice === 'system') {
+              window.localStorage.removeItem(storageKey);
+            } else {
+              window.localStorage.setItem(storageKey, nextChoice);
+            }
+          } catch {
+            // Blocked storage still switches the theme for this page view.
+          }
+
+          applyChoice(nextChoice);
+
+          return;
+        });
+
+        window.addEventListener('storage', (event) => {
+          if (event.key === storageKey) {
+            applyChoice(readChoice());
+          }
+
+          return;
+        });
+      }
+    </script>
+  </body>
+</html>

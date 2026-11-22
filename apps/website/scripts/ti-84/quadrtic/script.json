@@ -1,0 +1,13 @@
+{
+  "title": "Quadratic Equation Solver",
+  "category": "ti-84",
+  "description": "Solves a*x² + b*x + c = 0 on the TI-84 Plus CE.",
+  "language": "Python",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2025-09-21",
+      "notes": "First version."
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "title": "WooCommerce Pagination Arrows",
+  "category": "snippets",
+  "description": "Replaces the WooCommerce pagination previous and next labels with arrows.",
+  "language": "PHP",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2024-02-09",
+      "notes": "First version."
+    }
+  ]
+}

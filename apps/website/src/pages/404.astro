@@ -1,0 +1,30 @@
+---
+import { ChevronRight, Terminal } from '@lucide/astro';
+
+import messages from '../i18n/en.json';
+import Layout from '../layouts/layout.astro';
+import { Runner as Site } from '../lib/site.js';
+---
+
+<Layout title={messages.metadata.notFoundTitle} description={messages.metadata.notFoundDescription} thumbnail="not-found" noindex={true}>
+  <div class="terminal-container legal-page">
+    <p class="terminal-command">
+      <span><span class="terminal-prompt-user">jacky@nyc</span> <span class="terminal-prompt-path">~</span> %</span>
+      <code>cd ./page-not-found</code>
+    </p>
+    <article class="legal-document">
+      <h1>{messages.metadata.notFoundTitle}</h1>
+      <p>{messages.metadata.notFoundDescription}</p>
+    </article>
+    <div class="terminal-actions">
+      <a class="terminal-button terminal-button-primary" href={Site.withBase('/')}>
+        <Terminal aria-hidden="true" size={16} stroke-width={2} />
+        <span>{messages.navigation.home}</span>
+      </a>
+      <a class="terminal-button" href={Site.withBase('/scripts/')}>
+        <ChevronRight aria-hidden="true" size={16} stroke-width={2} />
+        <span>{messages.home.scriptsAction}</span>
+      </a>
+    </div>
+  </div>
+</Layout>

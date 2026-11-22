@@ -1,0 +1,745 @@
+{
+  "project": {
+    "name": {
+      "slug": "mrjackyliang",
+      "title": "Jacky Liang"
+    },
+    "description": {
+      "short": "Jacky Liang's personal site with versioned script downloads",
+      "long": "The personal site of Jacky Liang, a self-taught web developer from New York. Browse the AppleScript utilities, games, scripts, snippets, and TI-84 programs, and download any version of each one."
+    },
+    "keywords": [
+      "personal-site",
+      "scripts",
+      "applescript",
+      "snippets",
+      "astro"
+    ],
+    "legalName": "Jacky Liang",
+    "pronouns": "personal",
+    "platforms": [
+      "nodejs",
+      "web"
+    ],
+    "startingYear": 2014,
+    "license": "MIT"
+  },
+  "entities": [
+    {
+      "name": "Jacky Liang",
+      "email": "hello@mrjackyliang.com",
+      "url": "https://www.mrjackyliang.com/",
+      "roles": [
+        "author"
+      ]
+    }
+  ],
+  "emails": {
+    "bugs": "bugs@mrjackyliang.com"
+  },
+  "github": {
+    "owner": "mrjackyliang",
+    "repo": "mrjackyliang",
+    "topics": [
+      "personal-site",
+      "scripts",
+      "applescript",
+      "snippets",
+      "astro"
+    ],
+    "features": {
+      "issues": true,
+      "wiki": false,
+      "projects": false,
+      "discussions": false,
+      "sponsorships": true
+    },
+    "policies": {
+      "visibility": "public",
+      "defaultBranch": "main",
+      "mergeMethods": {
+        "merge": true,
+        "squash": true,
+        "rebase": true
+      },
+      "mergeCommit": {
+        "title": "merge-message",
+        "message": "pull-request-title"
+      },
+      "squashMerge": {
+        "title": "commit-or-pull-request-title",
+        "message": "commit-messages"
+      },
+      "autoDeleteHeadBranch": true,
+      "autoMerge": false,
+      "allowUpdateBranch": false,
+      "webCommitSignoffRequired": false
+    },
+    "security": {
+      "vulnerabilityAlerts": true,
+      "dependabotSecurityUpdates": false,
+      "secretScanning": true,
+      "pushProtection": true
+    },
+    "rulesets": {
+      "defaultBranch": {
+        "enforcement": "active",
+        "blockDeletions": true,
+        "blockForcePushes": true,
+        "requireLinearHistory": false,
+        "requireSignedCommits": true,
+        "requirePullRequest": false,
+        "requiredStatusChecks": [],
+        "requireBranchesToBeUpToDate": false
+      }
+    },
+    "actions": {
+      "enabled": true,
+      "allowedActions": "all",
+      "shaPinningRequired": false,
+      "defaultWorkflowPermissions": "read",
+      "canApprovePullRequestReviews": false,
+      "artifactRetentionDays": 7
+    },
+    "labels": [
+      {
+        "name": "bug",
+        "color": "d73a4a",
+        "description": "Something isn't working"
+      },
+      {
+        "name": "documentation",
+        "color": "0075ca",
+        "description": "Improvements or additions to documentation"
+      },
+      {
+        "name": "duplicate",
+        "color": "cfd3d7",
+        "description": "This issue or pull request already exists"
+      },
+      {
+        "name": "enhancement",
+        "color": "a2eeef",
+        "description": "New feature or request"
+      },
+      {
+        "name": "good first issue",
+        "color": "7057ff",
+        "description": "Good for newcomers"
+      },
+      {
+        "name": "help wanted",
+        "color": "008672",
+        "description": "Extra attention is needed"
+      },
+      {
+        "name": "invalid",
+        "color": "e4e669",
+        "description": "This doesn't seem right"
+      },
+      {
+        "name": "question",
+        "color": "d876e3",
+        "description": "Further information is requested"
+      },
+      {
+        "name": "wontfix",
+        "color": "ffffff",
+        "description": "This will not be worked on"
+      }
+    ],
+    "issueTemplate": {
+      "bugReportFields": [
+        "web",
+        "screenshots"
+      ]
+    }
+  },
+  "workflows": [
+    {
+      "template": "check-sponsor-gated-issues",
+      "name": "sponsor-check",
+      "triggers": [
+        "issue-comment",
+        "issues"
+      ],
+      "runsOn": "ubuntu-24.04",
+      "timeoutMinutes": 5
+    },
+    {
+      "template": "lock-inactive-issues",
+      "name": "lock-inactive",
+      "triggers": [
+        "schedule-weekly"
+      ],
+      "runsOn": "ubuntu-24.04",
+      "timeoutMinutes": 5
+    },
+    {
+      "template": "publish",
+      "name": "project",
+      "triggers": [
+        {
+          "name": "push",
+          "branches": [
+            "main"
+          ]
+        }
+      ],
+      "runsOn": "ubuntu-24.04",
+      "timeoutMinutes": 30,
+      "build": [
+        "./apps/website"
+      ],
+      "deploy": [
+        {
+          "to": "github-pages",
+          "path": "./apps/website",
+          "artifact": "website"
+        }
+      ]
+    }
+  ],
+  "urls": {
+    "homepage": "https://mrjackyliang.github.io/mrjackyliang/",
+    "repository": "git+https://github.com/mrjackyliang/mrjackyliang.git",
+    "bugs": "https://github.com/mrjackyliang/mrjackyliang/issues",
+    "license": "https://github.com/mrjackyliang/mrjackyliang/blob/HEAD/LICENSE",
+    "fundSources": [
+      "https://github.com/sponsors/mrjackyliang",
+      "https://liang.nyc/paypal"
+    ],
+    "privacyPolicy": "https://mrjackyliang.github.io/mrjackyliang/privacy/",
+    "termsOfUse": "https://mrjackyliang.github.io/mrjackyliang/terms/"
+  },
+  "readme": {
+    "badges": [
+      "github-top-language",
+      "github-license",
+      "coverage",
+      "funding"
+    ],
+    "profile": {
+      "heading": "Hello, I'm Jacky 👋🏼",
+      "introduction": [
+        "Welcome to my GitHub! Here lies my coding territory, where I unveil my open-source solutions to real-world challenges.",
+        "I am a self-taught web developer striving to evolve into a top-notch software engineer. Proudly born, raised, and residing in the vibrant city of __New York🗽__.",
+        "If you would like to learn more about me, read my [biography](https://www.mrjackyliang.com/biography/)!"
+      ],
+      "badgeGroups": [
+        {
+          "title": "Language Palette",
+          "emoji": "👨🏻‍💻",
+          "badges": [
+            {
+              "label": "TypeScript",
+              "logo": "typescript",
+              "color": "3178c6",
+              "link": "https://www.typescriptlang.org"
+            },
+            {
+              "label": "HTML",
+              "logo": "html5",
+              "color": "e34f26",
+              "link": "http://www.w3.org/TR/html5/"
+            },
+            {
+              "label": "CSS",
+              "logo": "css3",
+              "color": "1572b6",
+              "link": "https://www.w3.org/Style/CSS/Overview.en.html"
+            },
+            {
+              "label": "PHP",
+              "logo": "php",
+              "color": "777bb4",
+              "link": "https://www.php.net"
+            },
+            {
+              "label": "Shell",
+              "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9Ijk1NiI+PHBhdGggZmlsbD0iI0ZGRiIgZmlsbC1ydWxlPSJub256ZXJvIiBkPSJNODg3LjQ2NyAwSDEzNi41MzNDNjEuMTYzLjA4Mi4wODMgNjEuMTggMCAxMzYuNTcxVjgxOS40M0MuMDgyIDg5NC44MiA2MS4xNjIgOTU1LjkxOCAxMzYuNTMzIDk1Nmg3NTAuOTM0Yzc1LjM3LS4wODIgMTM2LjQ1LTYxLjE4IDEzNi41MzMtMTM2LjU3MVYxMzYuNTdDMTAyMy45MTggNjEuMTggOTYyLjgzOC4wODIgODg3LjQ2NyAwWm0tNzE2LjggNDc4YTM0LjEzNCAzNC4xMzQgMCAwIDEtMzIuMjA3LTIyLjgzNWMtNC44LTEzLjY4LS40NC0yOC45IDEwLjg3My0zNy45NkwyODYuNyAzMDcuMjg0IDE0OS4zMzMgMTk3LjM2OGEzNC4xNjQgMzQuMTY0IDAgMCAxIDguOTA2LTU4LjQ5MUEzNC4xNDIgMzQuMTQyIDAgMCAxIDE5MiAxNDQuMDE5TDM2Mi42NjcgMjgwLjU5YTM0LjE0NiAzNC4xNDYgMCAwIDEgMCA1My4zNDhMMTkyIDQ3MC41MWEzNC4xMjcgMzQuMTI3IDAgMCAxLTIxLjMzMyA3LjQ5Wk01MTIgNDc4SDM3NS40NjdjLTE4Ljg1MiAwLTM0LjEzNC0xNS4yODYtMzQuMTM0LTM0LjE0MyAwLTE4Ljg1NiAxNS4yODItMzQuMTQzIDM0LjEzNC0zNC4xNDNINTEyYzE4Ljg1MSAwIDM0LjEzMyAxNS4yODcgMzQuMTMzIDM0LjE0M0M1NDYuMTMzIDQ2Mi43MTQgNTMwLjg1MSA0NzggNTEyIDQ3OFoiLz48L3N2Zz4=",
+              "color": "333333",
+              "link": "https://en.wikipedia.org/wiki/Shell_script"
+            },
+            {
+              "label": "Java",
+              "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NTUiIGhlaWdodD0iMTAyNCI+PHBhdGggZmlsbD0iI0ZGRiIgZmlsbC1ydWxlPSJub256ZXJvIiBkPSJNNTQ5LjU5MSA2MjUuNzkyYzE5LjYwMS0xMy40IDQ2LjgwMi0yNSA0Ni44MDItMjVzLTc3LjQwMyAxNC0xNTQuNDA2IDIwLjRjLTk0LjIwNCA3LjgtMTk1LjQwOCA5LjQtMjQ2LjIxIDIuNi0xMjAuMjA1LTE2IDY2LjAwMy02MC4yIDY2LjAwMy02MC4ycy03Mi4yMDMtNC44LTE2MS4yMDcgMzhjLTEwNS4wMDQgNTAuOCAyNjAuMDEgNzQgNDQ5LjAxOCAyNC4yWm0tMTcwLjgwNy02NC4yYy0zOC4wMDEtODUuMzk4LTE2Ni4yMDYtMTYwLjM5NyAwLTI5MS41OTZDNTg2LjExMyAxMDYuNCA0NzkuNzkgMCA0NzkuNzkgMGM0My4wMDEgMTY4Ljk5OC0xNTEuMjA3IDIyMC4xOTctMjIxLjQxIDMyNS4xOTYtNDcuODAyIDcxLjc5OSAyMy40MDEgMTQ4Ljc5OCAxMjAuNDA1IDIzNi4zOTdabTIyOS4yMS0zNTIuMzk1Yy4yIDAtMzUwLjQxNSA4Ny42LTE4My4wMDggMjgwLjM5NyA0OS40MDIgNTYuNzk5LTEzIDEwNy45OTgtMTMgMTA3Ljk5OHMxMjUuNDA1LTY0Ljc5OSA2Ny44MDMtMTQ1Ljc5OGMtNTMuODAzLTc1LjU5OS05NS4wMDQtMTEzLjE5OCAxMjguMjA1LTI0Mi41OTdabS0xMi4yIDU0MC45OTNhMjQuMzggMjQuMzggMCAwIDEtNCA1LjJjMjU2LjYxLTY3LjQgMTYyLjIwNi0yMzcuNzk3IDM5LjYtMTk0LjU5N2EzNC42NjEgMzQuNjYxIDAgMCAwLTE2LjQgMTIuNiAxNDAuOTEyIDE0MC45MTIgMCAwIDEgMjIuMDAxLTZjNjIuMDAzLTEzIDE1MS4wMDYgODIuOTk4LTQxLjIwMiAxODIuNzk3Wm05NC4zMjMgMTI0LjU5OHMyOS4wMDIgMjMuOC0zMS44MDEgNDIuNGMtMTE1LjgwNSAzNS00ODEuNjIgNDUuNi01ODMuMjI0IDEuNC0zNi42MDItMTUuOCAzMi4wMDEtMzggNTMuNjAyLTQyLjYgMjIuNDAxLTQuOCAzNS40MDItNCAzNS40MDItNC00MC42MDItMjguNi0yNjIuNjExIDU2LjItMTEyLjgwNSA4MC40IDQwOC40OTcgNjYuMzk5IDc0NC44My0yOS44IDYzOC44MjYtNzcuNlpNMjQyLjk4IDc5MS45OWMtMTU3LjQwNyA0My45OTkgOTUuODA0IDEzNC43OTggMjk2LjIxMiA0OC45OTlhMzcxLjgwNCAzNzEuODA0IDAgMCAxLTU2LjQwMi0yNy42Yy04OS40MDQgMTctMTMwLjgwNiAxOC4yLTIxMi4wMSA5LTY3LjAwMi03LjYtMjcuOC0zMC40LTI3LjgtMzAuNFptMzU5LjYxNSAxOTQuMzk3Yy0xNTcuNDA3IDI5LjYtMzUxLjYxNSAyNi4yLTQ2Ni42MiA3LjIgMC0uMiAyMy42MDEgMTkuNCAxNDQuODA2IDI3LjIgMTg0LjQwOCAxMS44IDQ2Ny42Mi02LjYgNDc0LjIyLTkzLjggMCAwLTEyLjggMzMtMTUyLjQwNiA1OS40Wk01MTUuMzkgNzA1Ljk5Yy0xMTguNDA1IDIyLjgtMTg3LjAwOCAyMi4yLTI3My42MTEgMTMuMi02Ny4wMDMtNy0yMy4yMDEtMzkuNC0yMy4yMDEtMzkuNC0xNzMuNjA3IDU3LjYgOTYuNDA0IDEyMi43OTggMzM5LjAxNCA1MS44YTEyMC43NDYgMTIwLjc0NiAwIDAgMS00Mi4yMDItMjUuNloiLz48L3N2Zz4=",
+              "color": "ed8b00",
+              "link": "https://www.java.com"
+            },
+            {
+              "label": "C++",
+              "logo": "cplusplus",
+              "color": "00599c",
+              "link": "https://isocpp.org"
+            },
+            {
+              "label": "Python",
+              "logo": "python",
+              "color": "3776ab",
+              "link": "https://www.python.org"
+            },
+            {
+              "label": "Swift",
+              "logo": "swift",
+              "color": "f05138",
+              "link": "https://www.swift.org"
+            },
+            {
+              "label": "Kotlin",
+              "logo": "kotlin",
+              "color": "7f52ff",
+              "link": "https://kotlinlang.org"
+            },
+            {
+              "label": "Go",
+              "logo": "go",
+              "color": "00add8",
+              "link": "https://go.dev"
+            }
+          ]
+        },
+        {
+          "title": "My Tools of the Trade",
+          "emoji": "🛠️",
+          "badges": [
+            {
+              "label": "Claude Code",
+              "logo": "claude",
+              "color": "d97757",
+              "link": "https://www.claude.com/product/claude-code"
+            },
+            {
+              "label": "Codex",
+              "logo": "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIyLjI4MTkgOS44MjExYTUuOTg0NyA1Ljk4NDcgMCAwIDAtLjUxNTctNC45MTA4IDYuMDQ2MiA2LjA0NjIgMCAwIDAtNi41MDk4LTIuOUE2LjA2NTEgNi4wNjUxIDAgMCAwIDQuOTgwNyA0LjE4MThhNS45ODQ3IDUuOTg0NyAwIDAgMC0zLjk5NzcgMi45IDYuMDQ2MiA2LjA0NjIgMCAwIDAgLjc0MjcgNy4wOTY2IDUuOTggNS45OCAwIDAgMCAuNTExIDQuOTEwNyA2LjA1MSA2LjA1MSAwIDAgMCA2LjUxNDYgMi45MDAxQTUuOTg0NyA1Ljk4NDcgMCAwIDAgMTMuMjU5OSAyNGE2LjA1NTcgNi4wNTU3IDAgMCAwIDUuNzcxOC00LjIwNTggNS45ODk0IDUuOTg5NCAwIDAgMCAzLjk5NzctMi45MDAxIDYuMDU1NyA2LjA1NTcgMCAwIDAtLjc0NzUtNy4wNzI5em0tOS4wMjIgMTIuNjA4MWE0LjQ3NTUgNC40NzU1IDAgMCAxLTIuODc2NC0xLjA0MDhsLjE0MTktLjA4MDQgNC43NzgzLTIuNzU4MmEuNzk0OC43OTQ4IDAgMCAwIC4zOTI3LS42ODEzdi02LjczNjlsMi4wMiAxLjE2ODZhLjA3MS4wNzEgMCAwIDEgLjAzOC4wNTJ2NS41ODI2YTQuNTA0IDQuNTA0IDAgMCAxLTQuNDk0NSA0LjQ5NDR6bS05LjY2MDctNC4xMjU0YTQuNDcwOCA0LjQ3MDggMCAwIDEtLjUzNDYtMy4wMTM3bC4xNDIuMDg1MiA0Ljc4MyAyLjc1ODJhLjc3MTIuNzcxMiAwIDAgMCAuNzgwNiAwbDUuODQyOC0zLjM2ODV2Mi4zMzI0YS4wODA0LjA4MDQgMCAwIDEtLjAzMzIuMDYxNUw5Ljc0IDE5Ljk1MDJhNC40OTkyIDQuNDk5MiAwIDAgMS02LjE0MDgtMS42NDY0ek0yLjM0MDggNy44OTU2YTQuNDg1IDQuNDg1IDAgMCAxIDIuMzY1NS0xLjk3MjhWMTEuNmEuNzY2NC43NjY0IDAgMCAwIC4zODc5LjY3NjVsNS44MTQ0IDMuMzU0My0yLjAyMDEgMS4xNjg1YS4wNzU3LjA3NTcgMCAwIDEtLjA3MSAwbC00LjgzMDMtMi43ODY1QTQuNTA0IDQuNTA0IDAgMCAxIDIuMzQwOCA3Ljg3MnptMTYuNTk2MyAzLjg1NThMMTMuMTAzOCA4LjM2NCAxNS4xMTkyIDcuMmEuMDc1Ny4wNzU3IDAgMCAxIC4wNzEgMGw0LjgzMDMgMi43OTEzYTQuNDk0NCA0LjQ5NDQgMCAwIDEtLjY3NjUgOC4xMDQydi01LjY3NzJhLjc5Ljc5IDAgMCAwLS40MDctLjY2N3ptMi4wMTA3LTMuMDIzMWwtLjE0Mi0uMDg1Mi00Ljc3MzUtMi43ODE4YS43NzU5Ljc3NTkgMCAwIDAtLjc4NTQgMEw5LjQwOSA5LjIyOTdWNi44OTc0YS4wNjYyLjA2NjIgMCAwIDEgLjAyODQtLjA2MTVsNC44MzAzLTIuNzg2NmE0LjQ5OTIgNC40OTkyIDAgMCAxIDYuNjgwMiA0LjY2ek04LjMwNjUgMTIuODYzbC0yLjAyLTEuMTYzOGEuMDgwNC4wODA0IDAgMCAxLS4wMzgtLjA1NjdWNi4wNzQyYTQuNDk5MiA0LjQ5OTIgMCAwIDEgNy4zNzU3LTMuNDUzN2wtLjE0Mi4wODA1TDguNzA0IDUuNDU5YS43OTQ4Ljc5NDggMCAwIDAtLjM5MjcuNjgxM3ptMS4wOTc2LTIuMzY1NGwyLjYwMi0xLjQ5OTggMi42MDY5IDEuNDk5OHYyLjk5OTRsLTIuNTk3NCAxLjQ5OTctMi42MDY3LTEuNDk5N1oiLz48L3N2Zz4=",
+              "color": "000000",
+              "link": "https://openai.com/codex/"
+            },
+            {
+              "label": "Xcode",
+              "logo": "xcode",
+              "color": "147efb",
+              "link": "https://developer.apple.com/xcode/"
+            },
+            {
+              "label": "Android Studio",
+              "logo": "androidstudio",
+              "color": "3ddc84",
+              "link": "https://developer.android.com/studio"
+            },
+            {
+              "label": "Tower",
+              "logo": "tower",
+              "color": "002d4f",
+              "link": "https://www.git-tower.com"
+            },
+            {
+              "label": "Sketch",
+              "logo": "sketch",
+              "color": "f7b500",
+              "link": "https://www.sketch.com"
+            }
+          ]
+        },
+        {
+          "title": "Things I Like",
+          "emoji": "🤓",
+          "badges": [
+            {
+              "label": "Homebridge",
+              "logo": "homebridge",
+              "color": "491f59",
+              "link": "https://homebridge.io"
+            },
+            {
+              "label": "Synology",
+              "logo": "synology",
+              "color": "0067e6",
+              "link": "https://www.synology.com"
+            },
+            {
+              "label": "pfSense",
+              "logo": "pfsense",
+              "color": "1e3f75",
+              "link": "https://www.pfsense.org"
+            },
+            {
+              "label": "Docker",
+              "logo": "docker",
+              "color": "2496ed",
+              "link": "https://www.docker.com"
+            },
+            {
+              "label": "Cloudflare",
+              "logo": "cloudflare",
+              "color": "f38020",
+              "link": "https://www.cloudflare.com"
+            },
+            {
+              "label": "Ubiquiti",
+              "logo": "ubiquiti",
+              "color": "0559c9",
+              "link": "https://www.ui.com"
+            },
+            {
+              "label": "Plex",
+              "logo": "plex",
+              "color": "ebaf00",
+              "link": "https://www.plex.tv"
+            },
+            {
+              "label": "Tesla",
+              "logo": "tesla",
+              "color": "cc0000",
+              "link": "https://www.tesla.com"
+            },
+            {
+              "label": "WordPress",
+              "logo": "wordpress",
+              "color": "21759b",
+              "link": "https://wordpress.org"
+            },
+            {
+              "label": "WP Engine",
+              "logo": "wpengine",
+              "color": "0ecad4",
+              "link": "https://wpengine.com"
+            },
+            {
+              "label": "Debian",
+              "logo": "debian",
+              "color": "a81d33",
+              "link": "https://www.debian.org"
+            },
+            {
+              "label": "Rockstar Games",
+              "logo": "rockstargames",
+              "color": "fcaf17",
+              "link": "https://www.rockstargames.com"
+            },
+            {
+              "label": "DJI",
+              "logo": "dji",
+              "color": "000000",
+              "link": "https://www.dji.com"
+            },
+            {
+              "label": "Costco",
+              "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9Ijk4NiI+PHBhdGggZmlsbD0iI0ZGRiIgZmlsbC1ydWxlPSJub256ZXJvIiBkPSJNMTAyNCAzOS4yODZDOTM2LjM2NiAxMy45MyA4MzYuOTA1IDAgNzM3LjgxNyAwIDM4NC42NjQgMCA2My42ODcgMjIzLjA1IDguMDU1IDUwMS44NzktNDYuMzA5IDc3NC4zNzUgMTc5Ljg5OCA5ODYgNTIzLjQzOCA5ODZjNzguMzEgMCAyNDMuNTktMTEuMzk3IDMxOS4xOTQtMzcuOTlsODQuMTIyLTM1Ny40MjljLTgxLjE4NyA1NC41MS0xNjcuOSA4OC43MzEtMjY4LjU5OSA4OC43MzEtMTMxLjAzMyAwLTIyOC4yNzktODEuMTMzLTIwNy4yOTgtMTg2LjM1NSAyMC43NS0xMDMuODk5IDE0NC4yNzEtMTg2LjMyNyAyNzUuMjc1LTE4Ni4zMjcgOTkuMDYgMCAxNzguMDg4IDQ0LjM4IDIzOC4wMzUgOTYuMzNMMTAyNCAzOS4yODVaIi8+PC9zdmc+",
+              "color": "e31837",
+              "link": "https://www.costco.com"
+            }
+          ]
+        }
+      ],
+      "linkGroups": [
+        {
+          "title": "A Sea of Hidden Scripts",
+          "emoji": "💎",
+          "columns": [
+            "Gem",
+            "What's This?"
+          ],
+          "links": [
+            {
+              "label": "AppleScript",
+              "url": "https://mrjackyliang.github.io/mrjackyliang/scripts/#applescript",
+              "description": "Handy AppleScript utilities that automate macOS workflows, boost productivity, and simplify everyday tasks."
+            },
+            {
+              "label": "Games",
+              "url": "https://mrjackyliang.github.io/mrjackyliang/scripts/#games",
+              "description": "A mix of fun and academic projects—small games built for practice, learning, or just pure experimentation."
+            },
+            {
+              "label": "Scripts",
+              "url": "https://mrjackyliang.github.io/mrjackyliang/scripts/#scripts",
+              "description": "A toolbox of scripts designed to automate repetitive chores and make file or system management faster and cleaner."
+            },
+            {
+              "label": "Snippets",
+              "url": "https://mrjackyliang.github.io/mrjackyliang/scripts/#snippets",
+              "description": "Bite-sized code samples and patterns I've written over time—useful for quick references, debugging, or exploring new programming concepts."
+            },
+            {
+              "label": "TI-84",
+              "url": "https://mrjackyliang.github.io/mrjackyliang/scripts/#ti-84",
+              "description": "Custom Python programs written for the TI-84 Plus CE calculator, focused on improving math practice and algorithmic problem-solving."
+            }
+          ]
+        }
+      ],
+      "support": {
+        "title": "Support My Work",
+        "emoji": "🎗️",
+        "message": [
+          "If you appreciate my work and find value in my open-source projects, I welcome you to express your support!",
+          "By supporting me, you not only enable me to sustain this journey but also empower me to dedicate additional time to help you resolve environment-specific issues for the projects I've authored."
+        ],
+        "badges": [
+          {
+            "label": "Sponsor",
+            "logo": "github",
+            "color": "181717",
+            "link": "https://github.com/sponsors/mrjackyliang"
+          },
+          {
+            "label": "Donate",
+            "logo": "paypal",
+            "color": "003087",
+            "link": "https://liang.nyc/paypal"
+          }
+        ]
+      }
+    }
+  },
+  "workspaces": {
+    "./": {
+      "name": "mrjackyliang-project",
+      "role": "project",
+      "policy": "freezable"
+    },
+    "./apps/website": {
+      "name": "mrjackyliang-app-website",
+      "role": "app",
+      "policy": "trackable"
+    }
+  },
+  "artifacts": {
+    "website": {
+      "build": [
+        "./apps/website"
+      ],
+      "sources": [
+        {
+          "from": "./apps/website/build",
+          "to": "./"
+        }
+      ]
+    }
+  },
+  "ignoreFiles": {
+    "./.gitignore": {
+      "bundles": [
+        "nova"
+      ],
+      "patterns": [
+        "/assets/",
+        ".turbo/",
+        "graphify-out/"
+      ]
+    }
+  },
+  "attributeFiles": {
+    "./.gitattributes": {
+      "bundles": [],
+      "patterns": [
+        "*.applescript filter=applescript text diff",
+        "*.scpt binary"
+      ]
+    }
+  },
+  "agents": [
+    "claude-code",
+    "codex"
+  ],
+  "recipes": {
+    "github": {
+      "sync-actions": {
+        "enabled": true
+      },
+      "sync-features": {
+        "enabled": true
+      },
+      "sync-identity": {
+        "enabled": true
+      },
+      "sync-labels": {
+        "enabled": true
+      },
+      "sync-policies": {
+        "enabled": true
+      },
+      "sync-rulesets": {
+        "enabled": true
+      },
+      "sync-security": {
+        "enabled": true
+      }
+    },
+    "license": {
+      "update-copyright": {
+        "enabled": true
+      }
+    },
+    "miscellaneous": {
+      "fix-markdown-tables": {
+        "enabled": true
+      },
+      "remove-operating-system-files": {
+        "enabled": true,
+        "settings": {
+          "linux": {},
+          "macos": {
+            "appleDouble": true,
+            "desktopServicesStore": true
+          },
+          "windows": {
+            "enhancedThumbnailDatabase": true,
+            "enhancedVistaThumbnailDatabase": true,
+            "thumbnailDatabase": true
+          }
+        }
+      }
+    },
+    "nova-config": {
+      "normalize-order": {
+        "enabled": true
+      }
+    },
+    "read-me": {
+      "update-badges": {
+        "enabled": true
+      },
+      "update-credits": {
+        "enabled": true
+      },
+      "update-documentation": {
+        "enabled": true
+      },
+      "update-header": {
+        "enabled": true
+      },
+      "update-introduction": {
+        "enabled": true
+      }
+    },
+    "tsconfig": {
+      "sync-references": {
+        "enabled": true
+      }
+    },
+    "package-json": {
+      "./": {
+        "cleanup": {
+          "enabled": true,
+          "settings": {
+            "removeUnknownKeys": true,
+            "reorderKeys": true
+          }
+        },
+        "normalize-artifacts": {
+          "enabled": true
+        },
+        "normalize-bundler": {
+          "enabled": true
+        },
+        "normalize-dependencies": {
+          "enabled": true,
+          "settings": {
+            "pinDependencyVersions": true,
+            "pinDevDependencyVersions": true
+          }
+        },
+        "normalize-modules": {
+          "enabled": true
+        },
+        "normalize-tooling": {
+          "enabled": true
+        },
+        "sync-environment": {
+          "enabled": true,
+          "settings": {
+            "trackNodeLtsVersions": true
+          }
+        },
+        "sync-identity": {
+          "enabled": true
+        },
+        "sync-ownership": {
+          "enabled": true
+        }
+      },
+      "./apps/website": {
+        "cleanup": {
+          "enabled": true,
+          "settings": {
+            "removeUnknownKeys": true,
+            "reorderKeys": true
+          }
+        },
+        "normalize-artifacts": {
+          "enabled": true
+        },
+        "normalize-bundler": {
+          "enabled": true
+        },
+        "normalize-dependencies": {
+          "enabled": true,
+          "settings": {
+            "pinDependencyVersions": true,
+            "pinDevDependencyVersions": true
+          }
+        },
+        "normalize-modules": {
+          "enabled": true
+        },
+        "normalize-tooling": {
+          "enabled": true
+        },
+        "sync-environment": {
+          "enabled": true,
+          "settings": {
+            "trackNodeLtsVersions": true
+          }
+        },
+        "sync-identity": {
+          "enabled": true
+        },
+        "sync-ownership": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "environment": {
+    "project": {
+      "prefix": "PROJECT_"
+    },
+    "workspaces": {
+      "./": {
+        "prefix": "ROOT_"
+      },
+      "./apps/website": {
+        "prefix": "WEBSITE_"
+      }
+    },
+    "workflows": {
+      "sponsor-check": {
+        "prefix": "SGS_"
+      }
+    }
+  },
+  "settings": {
+    "coverage": {
+      "minimum": 65
+    },
+    "lockStepVersioning": true,
+    "runWorkspaces": {
+      "cache": {
+        "enabled": true,
+        "directory": "./node_modules/.cache/nova/run-workspaces",
+        "scripts": [
+          "build",
+          "check"
+        ]
+      },
+      "concurrency": {
+        "build": 2,
+        "check": 2,
+        "deploy": 2
+      }
+    },
+    "versionStrategy": "semver"
+  }
+}

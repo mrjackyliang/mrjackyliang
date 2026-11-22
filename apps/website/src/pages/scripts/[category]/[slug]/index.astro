@@ -1,0 +1,198 @@
+---
+import { Download, File, FileArchive } from '@lucide/astro';
+import { getCollection, getEntry } from 'astro:content';
+
+import messages from '../../../../i18n/en.json';
+import Layout from '../../../../layouts/layout.astro';
+import { Runner as Scripts } from '../../../../lib/scripts.js';
+import { Runner as Site } from '../../../../lib/site.js';
+
+import type { CollectionEntry } from 'astro:content';
+
+type Props = {
+  script: CollectionEntry<'scripts'>;
+};
+
+/**
+ * Pages - Scripts - Detail - Get Static Paths.
+ *
+ * Creates one "/scripts/<category>/<slug>/" page for every script entry.
+ * The entry ID already holds "<category>/<slug>", so it splits into both.
+ *
+ * @since 1.0.0
+ */
+export async function getStaticPaths() {
+  const scripts = await getCollection('scripts');
+
+  return scripts.map((script) => {
+    const scriptIdParts = script.id.split('/');
+
+    return {
+      params: {
+        category: scriptIdParts[0],
+        slug: scriptIdParts[1],
+      },
+      props: {
+        script,
+      },
+    };
+  });
+}
+
+const { script } = Astro.props;
+const basePath = Site.withBase(`/scripts/${script.id}`);
+const category = await getEntry('categories', script.data.category);
+const versions = Scripts.sortVersions(script.data.versions);
+const latest = Scripts.getLatestVersion(script.data.versions);
+const idParts = script.id.split('/');
+const slug = idParts[1] ?? script.id;
+const latestFiles = (latest === undefined) ? [] : Scripts.listFiles({
+  category: idParts[0] ?? '',
+  slug,
+  version: latest.version,
+});
+const history = versions.map((version) => ({
+  version,
+  files: Scripts.listFiles({
+    category: idParts[0] ?? '',
+    slug,
+    version: version.version,
+  }),
+}));
+const primaryDownload = (latestFiles.length === 1) ? `${basePath}/latest/${latestFiles[0]}` : `${basePath}/latest.zip`;
+const primaryLabel = (latestFiles.length === 1) ? messages.script.download : messages.script.downloadZip;
+const categoryTitle = (category === undefined) ? script.data.category : category.data.title;
+const identity = Site.getIdentity();
+const oldest = versions.at(-1);
+const sourceCodeStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareSourceCode',
+  'name': script.data.title,
+  'description': script.data.description,
+  'url': Site.absoluteUrl(`/scripts/${script.id}/`, Astro.site),
+  'programmingLanguage': script.data.language,
+  'version': latest?.version,
+  'datePublished': oldest?.date,
+  'dateModified': latest?.date,
+  'codeRepository': identity.repository,
+  'author': {
+    '@type': 'Person',
+    'name': identity.title ?? '',
+    'url': Site.absoluteUrl('/', Astro.site),
+  },
+};
+---
+
+<Layout title={script.data.title} description={script.data.description} thumbnail="script" ogType="article" structuredData={sourceCodeStructuredData}>
+  <div class="terminal-container terminal-page script-detail-page">
+    <nav class="terminal-breadcrumb" aria-label={messages.accessibility.breadcrumb}>
+      <ol>
+        <li><a href={Site.withBase('/scripts/')}>~/{messages.script.allScripts}</a></li>
+        <li><a href={Site.withBase(`/scripts/#${script.data.category}`)}>{script.data.category}</a></li>
+        <li aria-current="page">{slug}</li>
+      </ol>
+    </nav>
+
+    <header class="script-manifest-header">
+      <p class="terminal-command">
+        <span><span class="terminal-prompt-user">jacky@nyc</span> <span class="terminal-prompt-path">~</span> %</span>
+        <code>cat scripts/<wbr />{script.data.category}/<wbr />{slug}/<wbr />script.json</code>
+      </p>
+
+      <div class="script-detail-overview">
+        <div class="script-manifest">
+          <span class="manifest-brace" aria-hidden="true">{'{'}</span>
+          <h1><span class="manifest-key">"title"</span>: <span class="manifest-string">"{script.data.title}"</span>,</h1>
+          <p><span class="manifest-key">"category"</span>: <a class="manifest-string" href={Site.withBase(`/scripts/#${script.data.category}`)}>"{categoryTitle}"</a>,</p>
+          <p><span class="manifest-key">"language"</span>: <span class="manifest-string">"{script.data.language}"</span>,</p>
+          <p><span class="manifest-key">"description"</span>: <span class="manifest-string">"{script.data.description}"</span></p>
+          <span class="manifest-brace" aria-hidden="true">{'}'}</span>
+        </div>
+
+        <aside class="latest-release" aria-labelledby="latest-release-heading">
+          <p class="latest-release-label">HEAD -&gt; latest</p>
+          <h2 id="latest-release-heading">{messages.script.latestVersion}</h2>
+          <dl>
+            <dt>{messages.script.versionColumn}</dt>
+            <dd>{(latest === undefined) ? '' : latest.version}</dd>
+            <dt>{messages.script.released}</dt>
+            <dd>{(latest === undefined) ? '' : <time datetime={latest.date}>{latest.date}</time>}</dd>
+          </dl>
+          <a class="terminal-button terminal-button-primary" href={primaryDownload} download>
+            <Download aria-hidden="true" size={16} stroke-width={2} />
+            <span>{primaryLabel}</span>
+          </a>
+        </aside>
+      </div>
+    </header>
+
+    <section class="terminal-section detail-section" id="files" aria-labelledby="files-heading">
+      <p class="terminal-command">
+        <span><span class="terminal-prompt-user">jacky@nyc</span> <span class="terminal-prompt-path">~/{slug}</span> %</span>
+        <code>ls -l latest/</code>
+      </p>
+      <header class="detail-heading">
+        <h2 id="files-heading">{messages.script.files}</h2>
+        <p>{messages.script.filesDescription}</p>
+      </header>
+
+      <ul class="latest-file-list">
+        {latestFiles.map((file) => (
+          <li>
+            <span class="permissions-cell">-rw-r--r--</span>
+            <span class="latest-file-name"><File aria-hidden="true" size={15} stroke-width={1.8} />{file}</span>
+            <a href={`${basePath}/latest/${file}`} download aria-label={`${messages.script.downloadFile}: ${file}`}>
+              <Download aria-hidden="true" size={14} stroke-width={2} />
+              <span>{messages.script.download}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <div class="archive-download">
+        <span>{messages.script.downloadAllFiles}</span>
+        <a href={`${basePath}/latest.zip`} download>
+          <FileArchive aria-hidden="true" size={15} stroke-width={2} />
+          <span>{messages.script.downloadZip}</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="terminal-section detail-section terminal-section-last" id="version-history" aria-labelledby="version-history-heading">
+      <p class="terminal-command">
+        <span><span class="terminal-prompt-user">jacky@nyc</span> <span class="terminal-prompt-path">~/{slug}</span> %</span>
+        <code>git log --tags --date=short</code>
+      </p>
+      <header class="detail-heading">
+        <h2 id="version-history-heading">{messages.script.versionHistory}</h2>
+        <p>{messages.script.versionHistoryDescription}</p>
+      </header>
+
+      <ol class="git-log">
+        {history.map((item, index) => (
+          <li class="git-log-entry">
+            <h3 class="git-log-tag">
+              <span class="git-log-keyword">tag</span> v{item.version.version}{(index === 0) ? <span class="git-log-ref"> (HEAD -&gt; latest)</span> : ''}
+            </h3>
+            <p class="git-log-date">
+              <span>{messages.script.dateColumn}:</span> <time datetime={item.version.date}>{item.version.date}</time>
+            </p>
+            <p class="git-log-notes">{item.version.notes}</p>
+            <ul class="git-log-files" aria-label={`${messages.script.downloadColumn}: v${item.version.version}`}>
+              {item.files.map((file) => (
+                <li>
+                  <Download aria-hidden="true" size={13} stroke-width={2} />
+                  <a href={`${basePath}/${item.version.version}/${file}`} download>{file}</a>
+                </li>
+              ))}
+              <li class="git-log-archive">
+                <FileArchive aria-hidden="true" size={13} stroke-width={2} />
+                <a href={`${basePath}/${item.version.version}.zip`} download aria-label={`${messages.script.downloadZip}: v${item.version.version}`}>{messages.script.zip}</a>
+              </li>
+            </ul>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </div>
+</Layout>

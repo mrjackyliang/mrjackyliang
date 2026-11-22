@@ -1,0 +1,13 @@
+{
+  "title": "Delay Video Playing",
+  "category": "snippets",
+  "description": "Delays playing the videos inside \".delay-video-playing\" elements on a WordPress site.",
+  "language": "PHP",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2024-02-09",
+      "notes": "First version."
+    }
+  ]
+}

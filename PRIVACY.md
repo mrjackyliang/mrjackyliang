@@ -25,7 +25,7 @@ Anything you submit in a project's issue tracker, discussions, or pull requests 
 
 ## Sponsorships and Donations
 
-Sponsorships through GitHub Sponsors and donations through PayPal are processed by those services. I receive only what they share with the recipient, such as your name or username and the amount, and I use it only to recognize sponsors. A sponsorship or donation is a voluntary gift, as described in the [Terms of Use](https://github.com/mrjackyliang/mrjackyliang/blob/HEAD/TERMS.md).
+Sponsorships through GitHub Sponsors and donations through PayPal are processed by those services. I receive only what they share with the recipient, such as your name or username and the amount, and I use it only to recognize sponsors. A sponsorship or donation is a voluntary gift, as described in the [Terms of Use](https://mrjackyliang.github.io/mrjackyliang/terms/).
 
 ## Changes to This Policy
 

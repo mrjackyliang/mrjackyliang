@@ -1,0 +1,32 @@
+[
+  {
+    "id": "applescript",
+    "title": "AppleScript",
+    "description": "Handy AppleScript utilities that automate macOS workflows, boost productivity, and simplify everyday tasks.",
+    "order": 1
+  },
+  {
+    "id": "games",
+    "title": "Games",
+    "description": "A mix of fun and academic projects—small games built for practice, learning, or just pure experimentation.",
+    "order": 2
+  },
+  {
+    "id": "scripts",
+    "title": "Scripts",
+    "description": "A toolbox of scripts designed to automate repetitive chores and make file or system management faster and cleaner.",
+    "order": 3
+  },
+  {
+    "id": "snippets",
+    "title": "Snippets",
+    "description": "Bite-sized code samples and patterns I've written over time—useful for quick references, debugging, or exploring new programming concepts.",
+    "order": 4
+  },
+  {
+    "id": "ti-84",
+    "title": "TI-84",
+    "description": "Custom Python programs written for the TI-84 Plus CE calculator, focused on improving math practice and algorithmic problem-solving.",
+    "order": 5
+  }
+]

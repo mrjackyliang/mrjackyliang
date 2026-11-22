@@ -1,0 +1,17 @@
+---
+import { Content } from '../../../../PRIVACY.md';
+import messages from '../i18n/en.json';
+import Layout from '../layouts/layout.astro';
+---
+
+<Layout title={messages.navigation.privacy} description={messages.metadata.privacyDescription} thumbnail="privacy">
+  <div class="terminal-container legal-page">
+    <p class="terminal-command">
+      <span><span class="terminal-prompt-user">jacky@nyc</span> <span class="terminal-prompt-path">~</span> %</span>
+      <code>cat privacy.md</code>
+    </p>
+    <article class="legal-document">
+      <Content />
+    </article>
+  </div>
+</Layout>

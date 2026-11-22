@@ -1,0 +1,48 @@
+{
+  "title": "Tile Matching Game",
+  "category": "games",
+  "description": "A tile matching game with a console version and a Swing GUI version.",
+  "language": "Java",
+  "versions": [
+    {
+      "version": "1.1.1",
+      "date": "2024-04-12",
+      "notes": "GUI tiles get softer borders and a steady background on every system, and the logo sits next to the code."
+    },
+    {
+      "version": "1.1.0",
+      "date": "2024-04-12",
+      "notes": "GUI version alongside the console version, which moves to its own folder."
+    },
+    {
+      "version": "1.0.5",
+      "date": "2024-03-13",
+      "notes": "Every matching set is cleared before the game continues."
+    },
+    {
+      "version": "1.0.4",
+      "date": "2024-03-08",
+      "notes": "Leftover editor hint removed."
+    },
+    {
+      "version": "1.0.3",
+      "date": "2024-03-08",
+      "notes": "Back to the default code style."
+    },
+    {
+      "version": "1.0.2",
+      "date": "2024-03-07",
+      "notes": "Description comment at the top of the game."
+    },
+    {
+      "version": "1.0.1",
+      "date": "2024-03-02",
+      "notes": "Indentation cleanup."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2024-02-28",
+      "notes": "First version, played in the console."
+    }
+  ]
+}

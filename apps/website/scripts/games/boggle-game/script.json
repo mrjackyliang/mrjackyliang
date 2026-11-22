@@ -1,0 +1,13 @@
+{
+  "title": "Boggle Game",
+  "category": "games",
+  "description": "A console Boggle game for two or more players, with custom cubes and a dictionary word list.",
+  "language": "Java",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2024-05-11",
+      "notes": "First version."
+    }
+  ]
+}

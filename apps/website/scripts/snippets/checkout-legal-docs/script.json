@@ -1,0 +1,13 @@
+{
+  "title": "WooCommerce Checkout Legal Docs",
+  "category": "snippets",
+  "description": "Embeds a \"Legal Docs\" section on the WooCommerce checkout, with a required checkbox and an error when it is left unchecked.",
+  "language": "PHP",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2024-02-09",
+      "notes": "First version."
+    }
+  ]
+}

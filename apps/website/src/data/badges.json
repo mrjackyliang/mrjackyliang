@@ -1,0 +1,175 @@
+{
+  "languages": [
+    {
+      "name": "TypeScript",
+      "url": "https://www.typescriptlang.org",
+      "image": "https://img.shields.io/badge/TypeScript-8a2be2?style=for-the-badge&logo=typescript&logoColor=%23ffffff&color=%233178c6"
+    },
+    {
+      "name": "HTML",
+      "url": "http://www.w3.org/TR/html5/",
+      "image": "https://img.shields.io/badge/HTML-8a2be2?style=for-the-badge&logo=html5&logoColor=%23ffffff&color=%23e34f26"
+    },
+    {
+      "name": "CSS",
+      "url": "https://www.w3.org/Style/CSS/Overview.en.html",
+      "image": "https://img.shields.io/badge/CSS-8a2be2?style=for-the-badge&logo=css3&logoColor=%23ffffff&color=%231572b6"
+    },
+    {
+      "name": "PHP",
+      "url": "https://www.php.net",
+      "image": "https://img.shields.io/badge/PHP-8a2be2?style=for-the-badge&logo=php&logoColor=%23ffffff&color=%23777bb4"
+    },
+    {
+      "name": "Shell",
+      "url": "https://en.wikipedia.org/wiki/Shell_script",
+      "image": "https://img.shields.io/badge/Shell-8a2be2?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9Ijk1NiI+PHBhdGggZmlsbD0iI0ZGRiIgZmlsbC1ydWxlPSJub256ZXJvIiBkPSJNODg3LjQ2NyAwSDEzNi41MzNDNjEuMTYzLjA4Mi4wODMgNjEuMTggMCAxMzYuNTcxVjgxOS40M0MuMDgyIDg5NC44MiA2MS4xNjIgOTU1LjkxOCAxMzYuNTMzIDk1Nmg3NTAuOTM0Yzc1LjM3LS4wODIgMTM2LjQ1LTYxLjE4IDEzNi41MzMtMTM2LjU3MVYxMzYuNTdDMTAyMy45MTggNjEuMTggOTYyLjgzOC4wODIgODg3LjQ2NyAwWm0tNzE2LjggNDc4YTM0LjEzNCAzNC4xMzQgMCAwIDEtMzIuMjA3LTIyLjgzNWMtNC44LTEzLjY4LS40NC0yOC45IDEwLjg3My0zNy45NkwyODYuNyAzMDcuMjg0IDE0OS4zMzMgMTk3LjM2OGEzNC4xNjQgMzQuMTY0IDAgMCAxIDguOTA2LTU4LjQ5MUEzNC4xNDIgMzQuMTQyIDAgMCAxIDE5MiAxNDQuMDE5TDM2Mi42NjcgMjgwLjU5YTM0LjE0NiAzNC4xNDYgMCAwIDEgMCA1My4zNDhMMTkyIDQ3MC41MWEzNC4xMjcgMzQuMTI3IDAgMCAxLTIxLjMzMyA3LjQ5Wk01MTIgNDc4SDM3NS40NjdjLTE4Ljg1MiAwLTM0LjEzNC0xNS4yODYtMzQuMTM0LTM0LjE0MyAwLTE4Ljg1NiAxNS4yODItMzQuMTQzIDM0LjEzNC0zNC4xNDNINTEyYzE4Ljg1MSAwIDM0LjEzMyAxNS4yODcgMzQuMTMzIDM0LjE0M0M1NDYuMTMzIDQ2Mi43MTQgNTMwLjg1MSA0NzggNTEyIDQ3OFoiLz48L3N2Zz4=&logoColor=%23ffffff&color=%23333333"
+    },
+    {
+      "name": "Java",
+      "url": "https://www.java.com",
+      "image": "https://img.shields.io/badge/Java-8a2be2?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NTUiIGhlaWdodD0iMTAyNCI%2BPHBhdGggZmlsbD0iI0ZGRiIgZmlsbC1ydWxlPSJub256ZXJvIiBkPSJNNTQ5LjU5MSA2MjUuNzkyYzE5LjYwMS0xMy40IDQ2LjgwMi0yNSA0Ni44MDItMjVzLTc3LjQwMyAxNC0xNTQuNDA2IDIwLjRjLTk0LjIwNCA3LjgtMTk1LjQwOCA5LjQtMjQ2LjIxIDIuNi0xMjAuMjA1LTE2IDY2LjAwMy02MC4yIDY2LjAwMy02MC4ycy03Mi4yMDMtNC44LTE2MS4yMDcgMzhjLTEwNS4wMDQgNTAuOCAyNjAuMDEgNzQgNDQ5LjAxOCAyNC4yWm0tMTcwLjgwNy02NC4yYy0zOC4wMDEtODUuMzk4LTE2Ni4yMDYtMTYwLjM5NyAwLTI5MS41OTZDNTg2LjExMyAxMDYuNCA0NzkuNzkgMCA0NzkuNzkgMGM0My4wMDEgMTY4Ljk5OC0xNTEuMjA3IDIyMC4xOTctMjIxLjQxIDMyNS4xOTYtNDcuODAyIDcxLjc5OSAyMy40MDEgMTQ4Ljc5OCAxMjAuNDA1IDIzNi4zOTdabTIyOS4yMS0zNTIuMzk1Yy4yIDAtMzUwLjQxNSA4Ny42LTE4My4wMDggMjgwLjM5NyA0OS40MDIgNTYuNzk5LTEzIDEwNy45OTgtMTMgMTA3Ljk5OHMxMjUuNDA1LTY0Ljc5OSA2Ny44MDMtMTQ1Ljc5OGMtNTMuODAzLTc1LjU5OS05NS4wMDQtMTEzLjE5OCAxMjguMjA1LTI0Mi41OTdabS0xMi4yIDU0MC45OTNhMjQuMzggMjQuMzggMCAwIDEtNCA1LjJjMjU2LjYxLTY3LjQgMTYyLjIwNi0yMzcuNzk3IDM5LjYtMTk0LjU5N2EzNC42NjEgMzQuNjYxIDAgMCAwLTE2LjQgMTIuNiAxNDAuOTEyIDE0MC45MTIgMCAwIDEgMjIuMDAxLTZjNjIuMDAzLTEzIDE1MS4wMDYgODIuOTk4LTQxLjIwMiAxODIuNzk3Wm05NC4zMjMgMTI0LjU5OHMyOS4wMDIgMjMuOC0zMS44MDEgNDIuNGMtMTE1LjgwNSAzNS00ODEuNjIgNDUuNi01ODMuMjI0IDEuNC0zNi42MDItMTUuOCAzMi4wMDEtMzggNTMuNjAyLTQyLjYgMjIuNDAxLTQuOCAzNS40MDItNCAzNS40MDItNC00MC42MDItMjguNi0yNjIuNjExIDU2LjItMTEyLjgwNSA4MC40IDQwOC40OTcgNjYuMzk5IDc0NC44My0yOS44IDYzOC44MjYtNzcuNlpNMjQyLjk4IDc5MS45OWMtMTU3LjQwNyA0My45OTkgOTUuODA0IDEzNC43OTggMjk2LjIxMiA0OC45OTlhMzcxLjgwNCAzNzEuODA0IDAgMCAxLTU2LjQwMi0yNy42Yy04OS40MDQgMTctMTMwLjgwNiAxOC4yLTIxMi4wMSA5LTY3LjAwMi03LjYtMjcuOC0zMC40LTI3LjgtMzAuNFptMzU5LjYxNSAxOTQuMzk3Yy0xNTcuNDA3IDI5LjYtMzUxLjYxNSAyNi4yLTQ2Ni42MiA3LjIgMC0uMiAyMy42MDEgMTkuNCAxNDQuODA2IDI3LjIgMTg0LjQwOCAxMS44IDQ2Ny42Mi02LjYgNDc0LjIyLTkzLjggMCAwLTEyLjggMzMtMTUyLjQwNiA1OS40Wk01MTUuMzkgNzA1Ljk5Yy0xMTguNDA1IDIyLjgtMTg3LjAwOCAyMi4yLTI3My42MTEgMTMuMi02Ny4wMDMtNy0yMy4yMDEtMzkuNC0yMy4yMDEtMzkuNC0xNzMuNjA3IDU3LjYgOTYuNDA0IDEyMi43OTggMzM5LjAxNCA1MS44YTEyMC43NDYgMTIwLjc0NiAwIDAgMS00Mi4yMDItMjUuNloiLz48L3N2Zz4%3D&logoColor=%23ffffff&color=%23ed8b00"
+    },
+    {
+      "name": "C++",
+      "url": "https://isocpp.org",
+      "image": "https://img.shields.io/badge/C%2b%2b-8a2be2?style=for-the-badge&logo=c%2b%2b&logoColor=%23ffffff&color=%2300599c"
+    },
+    {
+      "name": "Python",
+      "url": "https://www.python.org",
+      "image": "https://img.shields.io/badge/Python-8a2be2?style=for-the-badge&logo=python&logoColor=%23ffffff&color=%233776ab"
+    },
+    {
+      "name": "Swift",
+      "url": "https://www.swift.org",
+      "image": "https://img.shields.io/badge/Swift-8a2be2?style=for-the-badge&logo=swift&logoColor=%23ffffff&color=%23f05138"
+    },
+    {
+      "name": "Kotlin",
+      "url": "https://kotlinlang.org",
+      "image": "https://img.shields.io/badge/Kotlin-8a2be2?style=for-the-badge&logo=kotlin&logoColor=%23ffffff&color=%237f52ff"
+    },
+    {
+      "name": "Go",
+      "url": "https://go.dev",
+      "image": "https://img.shields.io/badge/Go-8a2be2?style=for-the-badge&logo=go&logoColor=%23ffffff&color=%2300add8"
+    }
+  ],
+  "tools": [
+    {
+      "name": "Claude Code",
+      "url": "https://www.claude.com/product/claude-code",
+      "image": "https://img.shields.io/badge/Claude%20Code-8a2be2?style=for-the-badge&logo=claude&logoColor=%23ffffff&color=%23d97757"
+    },
+    {
+      "name": "Codex",
+      "url": "https://openai.com/codex/",
+      "image": "https://img.shields.io/badge/Codex-8a2be2?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI%2BPHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIyLjI4MTkgOS44MjExYTUuOTg0NyA1Ljk4NDcgMCAwIDAtLjUxNTctNC45MTA4IDYuMDQ2MiA2LjA0NjIgMCAwIDAtNi41MDk4LTIuOUE2LjA2NTEgNi4wNjUxIDAgMCAwIDQuOTgwNyA0LjE4MThhNS45ODQ3IDUuOTg0NyAwIDAgMC0zLjk5NzcgMi45IDYuMDQ2MiA2LjA0NjIgMCAwIDAgLjc0MjcgNy4wOTY2IDUuOTggNS45OCAwIDAgMCAuNTExIDQuOTEwNyA2LjA1MSA2LjA1MSAwIDAgMCA2LjUxNDYgMi45MDAxQTUuOTg0NyA1Ljk4NDcgMCAwIDAgMTMuMjU5OSAyNGE2LjA1NTcgNi4wNTU3IDAgMCAwIDUuNzcxOC00LjIwNTggNS45ODk0IDUuOTg5NCAwIDAgMCAzLjk5NzctMi45MDAxIDYuMDU1NyA2LjA1NTcgMCAwIDAtLjc0NzUtNy4wNzI5em0tOS4wMjIgMTIuNjA4MWE0LjQ3NTUgNC40NzU1IDAgMCAxLTIuODc2NC0xLjA0MDhsLjE0MTktLjA4MDQgNC43NzgzLTIuNzU4MmEuNzk0OC43OTQ4IDAgMCAwIC4zOTI3LS42ODEzdi02LjczNjlsMi4wMiAxLjE2ODZhLjA3MS4wNzEgMCAwIDEgLjAzOC4wNTJ2NS41ODI2YTQuNTA0IDQuNTA0IDAgMCAxLTQuNDk0NSA0LjQ5NDR6bS05LjY2MDctNC4xMjU0YTQuNDcwOCA0LjQ3MDggMCAwIDEtLjUzNDYtMy4wMTM3bC4xNDIuMDg1MiA0Ljc4MyAyLjc1ODJhLjc3MTIuNzcxMiAwIDAgMCAuNzgwNiAwbDUuODQyOC0zLjM2ODV2Mi4zMzI0YS4wODA0LjA4MDQgMCAwIDEtLjAzMzIuMDYxNUw5Ljc0IDE5Ljk1MDJhNC40OTkyIDQuNDk5MiAwIDAgMS02LjE0MDgtMS42NDY0ek0yLjM0MDggNy44OTU2YTQuNDg1IDQuNDg1IDAgMCAxIDIuMzY1NS0xLjk3MjhWMTEuNmEuNzY2NC43NjY0IDAgMCAwIC4zODc5LjY3NjVsNS44MTQ0IDMuMzU0My0yLjAyMDEgMS4xNjg1YS4wNzU3LjA3NTcgMCAwIDEtLjA3MSAwbC00LjgzMDMtMi43ODY1QTQuNTA0IDQuNTA0IDAgMCAxIDIuMzQwOCA3Ljg3MnptMTYuNTk2MyAzLjg1NThMMTMuMTAzOCA4LjM2NCAxNS4xMTkyIDcuMmEuMDc1Ny4wNzU3IDAgMCAxIC4wNzEgMGw0LjgzMDMgMi43OTEzYTQuNDk0NCA0LjQ5NDQgMCAwIDEtLjY3NjUgOC4xMDQydi01LjY3NzJhLjc5Ljc5IDAgMCAwLS40MDctLjY2N3ptMi4wMTA3LTMuMDIzMWwtLjE0Mi0uMDg1Mi00Ljc3MzUtMi43ODE4YS43NzU5Ljc3NTkgMCAwIDAtLjc4NTQgMEw5LjQwOSA5LjIyOTdWNi44OTc0YS4wNjYyLjA2NjIgMCAwIDEgLjAyODQtLjA2MTVsNC44MzAzLTIuNzg2NmE0LjQ5OTIgNC40OTkyIDAgMCAxIDYuNjgwMiA0LjY2ek04LjMwNjUgMTIuODYzbC0yLjAyLTEuMTYzOGEuMDgwNC4wODA0IDAgMCAxLS4wMzgtLjA1NjdWNi4wNzQyYTQuNDk5MiA0LjQ5OTIgMCAwIDEgNy4zNzU3LTMuNDUzN2wtLjE0Mi4wODA1TDguNzA0IDUuNDU5YS43OTQ4Ljc5NDggMCAwIDAtLjM5MjcuNjgxM3ptMS4wOTc2LTIuMzY1NGwyLjYwMi0xLjQ5OTggMi42MDY5IDEuNDk5OHYyLjk5OTRsLTIuNTk3NCAxLjQ5OTctMi42MDY3LTEuNDk5N1oiLz48L3N2Zz4%3D&logoColor=%23ffffff&color=%23000000"
+    },
+    {
+      "name": "Xcode",
+      "url": "https://developer.apple.com/xcode/",
+      "image": "https://img.shields.io/badge/Xcode-8a2be2?style=for-the-badge&logo=xcode&logoColor=%23ffffff&color=%23147efb"
+    },
+    {
+      "name": "Android Studio",
+      "url": "https://developer.android.com/studio",
+      "image": "https://img.shields.io/badge/Android%20Studio-8a2be2?style=for-the-badge&logo=androidstudio&logoColor=%23ffffff&color=%233ddc84"
+    },
+    {
+      "name": "Tower",
+      "url": "https://www.git-tower.com",
+      "image": "https://img.shields.io/badge/Tower-8a2be2?style=for-the-badge&logo=tower&logoColor=%23ffffff&color=%23002d4f"
+    },
+    {
+      "name": "Sketch",
+      "url": "https://www.sketch.com",
+      "image": "https://img.shields.io/badge/Sketch-8a2be2?style=for-the-badge&logo=sketch&logoColor=%23ffffff&color=%23f7b500"
+    }
+  ],
+  "likes": [
+    {
+      "name": "Homebridge",
+      "url": "https://homebridge.io",
+      "image": "https://img.shields.io/badge/Homebridge-8a2be2?style=for-the-badge&logo=homebridge&logoColor=%23ffffff&color=%23491f59"
+    },
+    {
+      "name": "Synology",
+      "url": "https://www.synology.com",
+      "image": "https://img.shields.io/badge/Synology-8a2be2?style=for-the-badge&logo=synology&logoColor=%23ffffff&color=%230067e6"
+    },
+    {
+      "name": "pfSense",
+      "url": "https://www.pfsense.org",
+      "image": "https://img.shields.io/badge/pfSense-8a2be2?style=for-the-badge&logo=pfsense&logoColor=%23ffffff&color=%231e3f75"
+    },
+    {
+      "name": "Docker",
+      "url": "https://www.docker.com",
+      "image": "https://img.shields.io/badge/Docker-8a2be2?style=for-the-badge&logo=docker&logoColor=%23ffffff&color=%232496ed"
+    },
+    {
+      "name": "Cloudflare",
+      "url": "https://www.cloudflare.com",
+      "image": "https://img.shields.io/badge/Cloudflare-8a2be2?style=for-the-badge&logo=cloudflare&logoColor=%23ffffff&color=%23f38020"
+    },
+    {
+      "name": "Ubiquiti",
+      "url": "https://www.ui.com",
+      "image": "https://img.shields.io/badge/Ubiquiti-8a2be2?style=for-the-badge&logo=ubiquiti&logoColor=%23ffffff&color=%230559c9"
+    },
+    {
+      "name": "Plex",
+      "url": "https://www.plex.tv",
+      "image": "https://img.shields.io/badge/Plex-8a2be2?style=for-the-badge&logo=plex&logoColor=%23ffffff&color=%23ebaf00"
+    },
+    {
+      "name": "Tesla",
+      "url": "https://www.tesla.com",
+      "image": "https://img.shields.io/badge/Tesla-8a2be2?style=for-the-badge&logo=tesla&logoColor=%23ffffff&color=%23cc0000"
+    },
+    {
+      "name": "WordPress",
+      "url": "https://wordpress.org",
+      "image": "https://img.shields.io/badge/WordPress-8a2be2?style=for-the-badge&logo=wordpress&logoColor=%23ffffff&color=%2321759b"
+    },
+    {
+      "name": "WP Engine",
+      "url": "https://wpengine.com",
+      "image": "https://img.shields.io/badge/WP%20Engine-8a2be2?style=for-the-badge&logo=wpengine&logoColor=%23ffffff&color=%230ecad4"
+    },
+    {
+      "name": "Debian",
+      "url": "https://www.debian.org",
+      "image": "https://img.shields.io/badge/Debian-8a2be2?style=for-the-badge&logo=debian&logoColor=%23ffffff&color=%23a81d33"
+    },
+    {
+      "name": "Rockstar Games",
+      "url": "https://www.rockstargames.com",
+      "image": "https://img.shields.io/badge/Rockstar%20Games-8a2be2?style=for-the-badge&logo=rockstargames&logoColor=%23ffffff&color=%23fcaf17"
+    },
+    {
+      "name": "DJI",
+      "url": "https://www.dji.com",
+      "image": "https://img.shields.io/badge/DJI-8a2be2?style=for-the-badge&logo=dji&logoColor=%23ffffff&color=%23000000"
+    },
+    {
+      "name": "Costco",
+      "url": "https://www.costco.com",
+      "image": "https://img.shields.io/badge/Costco-8a2be2?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9Ijk4NiI%2BPHBhdGggZmlsbD0iI0ZGRiIgZmlsbC1ydWxlPSJub256ZXJvIiBkPSJNMTAyNCAzOS4yODZDOTM2LjM2NiAxMy45MyA4MzYuOTA1IDAgNzM3LjgxNyAwIDM4NC42NjQgMCA2My42ODcgMjIzLjA1IDguMDU1IDUwMS44NzktNDYuMzA5IDc3NC4zNzUgMTc5Ljg5OCA5ODYgNTIzLjQzOCA5ODZjNzguMzEgMCAyNDMuNTktMTEuMzk3IDMxOS4xOTQtMzcuOTlsODQuMTIyLTM1Ny40MjljLTgxLjE4NyA1NC41MS0xNjcuOSA4OC43MzEtMjY4LjU5OSA4OC43MzEtMTMxLjAzMyAwLTIyOC4yNzktODEuMTMzLTIwNy4yOTgtMTg2LjM1NSAyMC43NS0xMDMuODk5IDE0NC4yNzEtMTg2LjMyNyAyNzUuMjc1LTE4Ni4zMjcgOTkuMDYgMCAxNzguMDg4IDQ0LjM4IDIzOC4wMzUgOTYuMzNMMTAyNCAzOS4yODVaIi8%2BPC9zdmc%2B&logoColor=%23ffffff&color=%23e31837"
+    }
+  ],
+  "support": [
+    {
+      "name": "Sponsor",
+      "url": "https://github.com/sponsors/mrjackyliang",
+      "image": "https://img.shields.io/badge/Sponsor-8a2be2?style=for-the-badge&logo=github&logoColor=%23ffffff&color=%23181717"
+    },
+    {
+      "name": "Donate",
+      "url": "https://liang.nyc/paypal",
+      "image": "https://img.shields.io/badge/Donate-8a2be2?style=for-the-badge&logo=paypal&logoColor=%23ffffff&color=%23003087"
+    }
+  ]
+}

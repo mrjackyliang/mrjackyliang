@@ -1,0 +1,13 @@
+{
+  "title": "Windows 11 Custom ISO Builder",
+  "category": "scripts",
+  "description": "Extracts a user-selected Source ISO, merges a \"base\" folder (drivers/extras) into the ISO root, injects \"autounattend.xml\" into the boot RAM disk, and configures \"winpeshl.ini\" to force that specific answer file.",
+  "language": "PowerShell",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2025-12-28",
+      "notes": "First version."
+    }
+  ]
+}

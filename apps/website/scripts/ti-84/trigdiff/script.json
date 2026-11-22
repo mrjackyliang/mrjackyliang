@@ -1,0 +1,18 @@
+{
+  "title": "Trigonometry Derivatives",
+  "category": "ti-84",
+  "description": "Trigonometry derivative and antiderivative reference, browsable by function on the TI-84 Plus CE.",
+  "language": "Python",
+  "versions": [
+    {
+      "version": "1.0.1",
+      "date": "2025-10-20",
+      "notes": "Calculator-friendly notation, such as \"sec^{2}(x)\", with spacing around operators."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2025-09-21",
+      "notes": "First version."
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "title": "Wake on LAN via pfSense Actions",
+  "category": "applescript",
+  "description": "Sends Wake-on-LAN requests through pfSense Actions to power on remote PCs, waits for them to boot, and launches a remote desktop application of your choice. Supports multiple PCs with a management UI.",
+  "language": "AppleScript",
+  "versions": [
+    {
+      "version": "1.2.0",
+      "date": "2026-11-04",
+      "notes": "Works with pfSense Actions 2.0 access tokens, flags old 1.x API keys, and retries rate-limited requests."
+    },
+    {
+      "version": "1.1.0",
+      "date": "2026-09-17",
+      "notes": "Requests run in the background, so the script stays responsive while it waits."
+    },
+    {
+      "version": "1.0.1",
+      "date": "2026-05-14",
+      "notes": "Pauses after confirmations so dialogs no longer overlap."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-02-25",
+      "notes": "First version. Wakes a remote PC through pfSense Actions."
+    }
+  ]
+}

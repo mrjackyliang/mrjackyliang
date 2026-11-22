@@ -1,0 +1,13 @@
+{
+  "title": "Code Editor Tabs",
+  "category": "snippets",
+  "description": "A React code editor built with Monaco Editor and MUI tabs.",
+  "language": "TypeScript",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2024-03-04",
+      "notes": "First version."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+---
+import { Content } from '../../../../TERMS.md';
+import messages from '../i18n/en.json';
+import Layout from '../layouts/layout.astro';
+---
+
+<Layout title={messages.navigation.terms} description={messages.metadata.termsDescription} thumbnail="terms">
+  <div class="terminal-container legal-page">
+    <p class="terminal-command">
+      <span><span class="terminal-prompt-user">jacky@nyc</span> <span class="terminal-prompt-path">~</span> %</span>
+      <code>cat terms.md</code>
+    </p>
+    <article class="legal-document">
+      <Content />
+    </article>
+  </div>
+</Layout>

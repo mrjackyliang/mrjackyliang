@@ -1,0 +1,13 @@
+{
+  "title": "WooCommerce Quantity Buttons",
+  "category": "snippets",
+  "description": "Adds quantity increment and decrement buttons to WooCommerce product and cart pages, with a quantity updater.",
+  "language": "PHP",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2024-02-09",
+      "notes": "First version."
+    }
+  ]
+}

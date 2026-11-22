@@ -1,0 +1,13 @@
+{
+  "title": "Google Tag Manager Setup",
+  "category": "snippets",
+  "description": "Adds the Google Tag Manager head and body-open code to a WordPress site.",
+  "language": "PHP",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2024-02-09",
+      "notes": "First version."
+    }
+  ]
+}

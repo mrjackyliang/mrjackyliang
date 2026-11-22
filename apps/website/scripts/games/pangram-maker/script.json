@@ -1,0 +1,33 @@
+{
+  "title": "Pangram Maker",
+  "category": "games",
+  "description": "A console game that helps you build a pangram one word at a time from a dictionary word list.",
+  "language": "Java",
+  "versions": [
+    {
+      "version": "1.1.2",
+      "date": "2024-03-08",
+      "notes": "Simpler letter tracking with clearer comments."
+    },
+    {
+      "version": "1.1.1",
+      "date": "2024-03-08",
+      "notes": "Faster suggestion search that returns the right suggestions."
+    },
+    {
+      "version": "1.1.0",
+      "date": "2024-03-07",
+      "notes": "Warns about and skips words that are not all capital letters, with clearer comments."
+    },
+    {
+      "version": "1.0.1",
+      "date": "2024-03-07",
+      "notes": "Suggestion count check corrected for lists of exactly five pairs."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2024-03-07",
+      "notes": "First version."
+    }
+  ]
+}

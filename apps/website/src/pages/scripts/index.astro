@@ -1,0 +1,117 @@
+---
+import { Download, FileText } from '@lucide/astro';
+import { getCollection } from 'astro:content';
+
+import messages from '../../i18n/en.json';
+import Layout from '../../layouts/layout.astro';
+import { Runner as Scripts } from '../../lib/scripts.js';
+import { Runner as Site } from '../../lib/site.js';
+
+const categories = (await getCollection('categories')).sort((leftCategory, rightCategory) => leftCategory.data.order - rightCategory.data.order);
+const scripts = (await getCollection('scripts')).sort((leftScript, rightScript) => leftScript.data.title.localeCompare(rightScript.data.title));
+const sections = categories.map((category) => ({
+  category,
+  scripts: scripts.filter((script) => script.data.category === category.id).map((script) => {
+    const latest = Scripts.getLatestVersion(script.data.versions);
+    const scriptIdParts = script.id.split('/');
+    const slug = scriptIdParts[1] ?? script.id;
+    const latestFiles = (latest === undefined) ? [] : Scripts.listFiles({
+      category: scriptIdParts[0] ?? '',
+      slug,
+      version: latest.version,
+    });
+    const downloadPath = (latestFiles.length === 1)
+      ? Site.withBase(`/scripts/${script.id}/latest/${latestFiles[0]}`)
+      : Site.withBase(`/scripts/${script.id}/latest.zip`);
+
+    return {
+      downloadPath,
+      latest,
+      script,
+      slug,
+    };
+  }),
+}));
+---
+
+<Layout title={messages.metadata.scriptsTitle} description={messages.metadata.scriptsDescription} thumbnail="scripts">
+  <div class="terminal-container terminal-page scripts-page">
+    <header class="terminal-page-header" aria-labelledby="collection-heading">
+      <p class="terminal-command">
+        <span><span class="terminal-prompt-user">jacky@nyc</span> <span class="terminal-prompt-path">~/scripts</span> %</span>
+        <code>ls -la</code>
+      </p>
+      <h1 id="collection-heading">{messages.scripts.heading}</h1>
+      <p class="terminal-page-lead">{messages.metadata.scriptsDescription}</p>
+      <p class="terminal-total">total {scripts.length}</p>
+    </header>
+
+    <nav class="directory-navigation" aria-labelledby="category-navigation-heading">
+      <h2 class="visually-hidden" id="category-navigation-heading">{messages.scripts.categoryNavigation}</h2>
+      <ul>
+        {sections.map((section) => (
+          <li><a href={`#${section.category.id}`}>./{section.category.id}/</a></li>
+        ))}
+      </ul>
+    </nav>
+
+    <div aria-label={messages.scripts.collectionLabel}>
+      {sections.map((section) => (
+        <section class="terminal-section script-directory" id={section.category.id} aria-labelledby={`${section.category.id}-heading`}>
+          <p class="terminal-command">
+            <span><span class="terminal-prompt-user">jacky@nyc</span> <span class="terminal-prompt-path">~</span> %</span>
+            <code>ls -l scripts/{section.category.id}/</code>
+          </p>
+
+          <header class="directory-heading">
+            <div>
+              <h2 id={`${section.category.id}-heading`}>{section.category.data.title}</h2>
+              <p>{section.category.data.description}</p>
+            </div>
+            <span>{section.scripts.length} {messages.scripts.scriptsLabel}</span>
+          </header>
+
+          <div class="terminal-table-frame">
+            <table class="script-index-table">
+              <caption class="visually-hidden">{section.category.data.title}</caption>
+              <thead>
+                <tr>
+                  <th class="permissions-cell" scope="col">Permissions</th>
+                  <th scope="col">{messages.scripts.latestVersion}</th>
+                  <th scope="col">{messages.scripts.released}</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">{messages.scripts.language}</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {section.scripts.map((item) => (
+                  <tr>
+                    <td class="permissions-cell">-rw-r--r--</td>
+                    <td class="version-cell">v{(item.latest === undefined) ? '' : item.latest.version}</td>
+                    <td class="date-cell">{(item.latest === undefined) ? '' : <time datetime={item.latest.date}>{item.latest.date}</time>}</td>
+                    <th class="script-name-cell" scope="row">
+                      <a href={Site.withBase(`/scripts/${item.script.id}/`)}>{item.slug}/</a>
+                      <span>{item.script.data.title}</span>
+                    </th>
+                    <td class="language-cell">{item.script.data.language}</td>
+                    <td class="actions-cell">
+                      <a href={Site.withBase(`/scripts/${item.script.id}/`)}>
+                        <FileText aria-hidden="true" size={14} stroke-width={2} />
+                        <span>{messages.scripts.viewDetails}</span>
+                      </a>
+                      <a href={item.downloadPath} download aria-label={`${messages.scripts.downloadLatest}: ${item.script.data.title}`}>
+                        <Download aria-hidden="true" size={14} stroke-width={2} />
+                        <span>{messages.scripts.downloadLatest}</span>
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))}
+    </div>
+  </div>
+</Layout>
