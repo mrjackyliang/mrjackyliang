@@ -1,5 +1,10 @@
 # mrjackyliang-app-website
 
+## 1.0.1 - 2026-11-27
+
+### UPDATED
+- Nova 0.54.0.
+
 ## 1.0.0 - 2026-11-22
 
 ### ADDED

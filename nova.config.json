@@ -519,7 +519,6 @@
         "nova"
       ],
       "patterns": [
-        "/assets/",
         ".turbo/",
         "graphify-out/"
       ]
